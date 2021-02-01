@@ -18,7 +18,7 @@ void setup() {
   size(1600, 800, P2D);
   textAlign(CENTER, CENTER);
   textFont(createFont("Helvetica", 14));
-  frame.setTitle("EMBED VIEW");
+  //frame.setTitle("EMBED VIEW");
   
   loadData();
   initUI();
