@@ -12,7 +12,7 @@ Processing's drawing API and engine can be run from a Jupyter notebook to enable
 
 The datasets can be quite large, as seen in the next image:
 
-![RNA-seq embed viewer loading a large dataset](jupyter_screenshot2.jpg)
+![RNA-seq embed viewer loading a large dataset](images/jupyter_screenshot2.jpg)
 
 ## Processing sketch
 
