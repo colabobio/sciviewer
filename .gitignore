@@ -1,8 +1,10 @@
 .DS_Store
 *.tsv
 *.csv
+
 data/
 build/
 dist/
 *.egg-info/
 .ipynb_checkpoints
+
