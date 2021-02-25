@@ -2,6 +2,13 @@
 
 This prototype of an RNA-seq Embedding Viewer allows exploring an UMAP embedding of single-cell RNA-seq data. The user can select directions in the UMAP plane, and the viewer will calculate the genes with the highest correlation with those directions. It is available as a stand-along Processing sketch and as a Jupyter notebook.
 
+
+## Installation
+- conda env create -n py5coding -f http://py5.ixora.io/install/py5_environment.yml # Prepare conda environment containing dependencies for py5
+- conda activate py5coding # activate the environment created above
+- pip install umap_explorer # Install the umap_explorer package in this repo
+
+
 ## Jupyter notebook
 
 This Jupyter notebook demonstrates the use of [py5](http://py5.ixora.io/), a version of Processing for Python, to create an interactive viewer of RNA-seq embedding data. Find it under the notebook folder.
