@@ -6,8 +6,21 @@ import sys
 import py5
 from py5 import Sketch
 
+usePShape = True
 
-def angleBetween(v1, v2):
+CLOSED = 0
+SET_SPINE = 1
+SET_WIDTH = 2
+COMPLETED = 3
+
+SEL_COLOR = 1
+EXP_COLOR = 2
+RST_COLOR = 3
+
+itemHeight = 50
+itemSpace = 10
+
+def angle_between(v1, v2):
     # Angle calculation A
 #     amt = np.dot(v1, v2) / (la.norm(v1) * la.norm(v2))
 #     if amt <= -1:
@@ -20,8 +33,6 @@ def angleBetween(v1, v2):
     sinang = la.norm(np.cross(v1, v2))
     return np.arctan2(sinang, cosang)
 
-
-
 class Gene():
     def __init__(self, n, i, r, p):
         self.name = n
@@ -29,9 +40,6 @@ class Gene():
         self.r = r
         self.rabs = abs(r)
         self.p = p
-
-itemHeight = 50
-itemSpace = 10
 
 class ScrollableList:    
     def __init__(self, x, y, w, h):
@@ -44,7 +52,7 @@ class ScrollableList:
         self.selItem = -1
         self.dragged = False
   
-    def setList(self, genes):
+    def set_list(self, genes):
         self.genes = genes
         self.scrollbar = ScrollBar(50 * len(genes), 0.1 * self.w, self.w, self.h)
         self.selItem = -1
@@ -78,14 +86,14 @@ class ScrollableList:
   
     def press(self):
         self.dragged = False
-        self.scrollbar.setOpen()
+        self.scrollbar.set_open()
 
     def drag(self, my, pmy):
         self.dragged = True
         self.scrollbar.update(pmy - my)
 
     def release(self, my):
-        self.scrollbar.setClose()
+        self.scrollbar.set_close()
         if not self.dragged:
             l = my - self.scrollbar.translateY
             self.selItem = int(l / itemHeight)
@@ -95,7 +103,7 @@ class ScrollableList:
         else:
             return -1
 
-class ScrollBar:    
+class ScrollBar:
     def __init__(self, th, bw, lw, lh):
         self.totalHeight = th
         self.barWidth = bw
@@ -104,10 +112,10 @@ class ScrollBar:
         self.listWidth = lw
         self.listHeight = lh
 
-    def setOpen(self):
+    def set_open(self):
         self.opacity = 150
 
-    def setClose(self):
+    def set_close(self):
         self.opacity = 0
 
     def update(self, dy):
@@ -128,7 +136,6 @@ class ScrollBar:
             py5obj.rect(x, y, w, h, 0.2 * w)
             py5obj.pop_style()
             
-            
 class Button:
     def __init__(self, x, y, w, h, l):
         self.x = x
@@ -147,12 +154,6 @@ class Button:
   
     def contains(self, mx, my):
         return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
-    
-    
-CLOSED = 0
-SET_SPINE = 1
-SET_WIDTH = 2
-COMPLETED = 3
 
 class Selector():
     def __init__(self):
@@ -186,9 +187,9 @@ class Selector():
             p5obj.stroke(240, 118, 104)
             p5obj.line(self.spx0, self.spy0, self.spx1, self.spy1)
             p5obj.line(self.spx1, self.spy1, self.wx, self.wy)
-            self.displayBox(p5obj)
+            self.display_box(p5obj)
         else:
-            self.displayBox(p5obj)
+            self.display_box(p5obj)
     
     
     def apply(self, p5obj, cell, sx0, sy0, sw, sh):
@@ -202,19 +203,19 @@ class Selector():
 #         ty = t[1]
 
         # Transformation code B
-        tx = self.multX(sx, sy)
-        ty = self.multY(sx, sy)
+        tx = self.mult_x(sx, sy)
+        ty = self.mult_y(sx, sy)
         
         cell.selected = 0 <= tx and tx <= self.w and -self.h/2 <= ty and ty <= self.h/2
 
-    def updateBox(self, x, y):
+    def update_box(self, x, y):
         self.wx = x
         self.wy = y
         
         spdir = np.array([self.spx1 - self.spx0, self.spy1 - self.spy0])
         bxdir = np.array([self.wx - self.spx1, self.wy - self.spy1])
 
-        a = angleBetween(spdir, bxdir)
+        a = angle_between(spdir, bxdir)
         d = np.sin(a) * la.norm(bxdir)
     
         self.angle = np.arctan2(spdir[1], spdir[0])
@@ -243,7 +244,7 @@ class Selector():
         self.ny0 = py5obj.remap(self.spy0, sy0, sy0 + sh, 0, 1)
         self.ny1 = py5obj.remap(self.spy1, sy0, sy0 + sh, 0, 1)
   
-    def displayBox(self, py5obj):
+    def display_box(self, py5obj):
         py5obj.stroke(240, 118, 104)
         py5obj.no_fill()
         py5obj.push_matrix()
@@ -271,7 +272,7 @@ class Selector():
 
     def move(self, x, y):
         if self.state == SET_WIDTH:
-            self.updateBox(x, y)
+            self.update_box(x, y)
 
     def release(self, x, y):
         requestSelection = False
@@ -285,15 +286,15 @@ class Selector():
             else:
                 self.state = CLOSED
         elif self.state == SET_WIDTH:
-            self.updateBox(x, y)
+            self.update_box(x, y)
             self.state = COMPLETED
             requestSelection = True
         return(requestSelection)
             
-    def multX(self, x, y):
+    def mult_x(self, x, y):
         return self.tmat[0][0] * x + self.tmat[0][1] * y + self.tmat[0][2]
             
-    def multY(self, x, y):
+    def mult_y(self, x, y):
         return self.tmat[1][0] * x + self.tmat[1][1] * y + self.tmat[1][2]
     
     def reset(self):
@@ -301,8 +302,8 @@ class Selector():
                               [0.0, 1.0, 0.0]])        
             
     def rotate(self, angle):
-        s = np.sin(angle);
-        c = np.cos(angle);
+        s = np.sin(angle)
+        c = np.cos(angle)
         
         temp1 = self.tmat[0][0]
         temp2 = self.tmat[0][1]
@@ -317,7 +318,6 @@ class Selector():
         self.tmat[0][2] = tx*self.tmat[0][0] + ty*self.tmat[0][1] + self.tmat[0][2]
         self.tmat[1][2] = tx*self.tmat[1][0] + ty*self.tmat[1][1] + self.tmat[1][2]
         
-        
 class Cell:
     def __init__(self, c, u1, u2):
         self.code = c
@@ -331,20 +331,20 @@ class Cell:
         self.umap1 = p5obj.remap(self.umap1, min1, max1, 0, 1)
         self.umap2 = p5obj.remap(self.umap2, min2, max2, 1, 0)
   
-    def initExpression(self, numGenes):
+    def init_expression(self, numGenes):
         self.expression = [0.0] * numGenes
 
-    def setExpression(self, i, level):
+    def set_expression(self, i, level):
         self.expression[i] = level
 
-    def setAllExpressions(self, levels):
+    def set_all_expressions(self, levels):
         self.expression = levels
         
     def project(self, sel):
         if self.selected:
             dirv = np.array([sel.nx1 - sel.nx0, sel.ny1 - sel.ny0])
             celv = np.array([self.umap1 - sel.nx0, self.umap2 - sel.ny0])
-            a = angleBetween(dirv, celv)        
+            a = angle_between(dirv, celv)        
             self.proj = np.cos(a) * la.norm(celv) / la.norm(dirv)
     
     def display(self, p5obj, x0, y0, w, h):
@@ -364,7 +364,22 @@ class Cell:
             else:
                 p5obj.fill(150, 80)
         p5obj.ellipse(x, y, 5, 5)
-        
+
+    def get_expr_color(self, p5obj, selGene):
+        p5obj.color_mode(p5obj.HSB, 360, 100, 100)
+        f = p5obj.constrain(p5obj.remap(self.expression[selGene], 
+                                        p5obj.minGeneExp, p5obj.maxGeneExp, 0, 1), 0, 1)
+        cl = p5obj.color((1 - f) * 170 + f * 233, 74, 93, 80)
+        p5obj.color_mode(p5obj.RGB, 255, 255, 255)
+        return cl
+
+    def create_shape(self, p5obj, x0, y0, w, h):
+        x = p5obj.remap(self.umap1, 0, 1, x0, x0 + w)
+        y = p5obj.remap(self.umap2, 0, 1, y0, y0 + h)        
+        sh = p5obj.create_shape(p5obj.ELLIPSE, x, y, 5, 5)
+        sh.set_stroke(False)
+        sh.set_fill(p5obj.color(150, 80))
+        return sh
         
 class UMAPexplorer(Sketch):
     def settings(self):
@@ -372,12 +387,14 @@ class UMAPexplorer(Sketch):
 
     def setup(self):
         self.text_align(self.CENTER, self.CENTER)
-        self.initUI()    
+        self.init_UI()
+        if usePShape:
+            self.init_shape()
         self.text_font(self.create_font("Helvetica", 14))
 
     def draw(self):        
         self.background(255)
-        self.showUMAPScatter()
+        self.show_UMAP_scatter()
 
         if self.requestSelection and 0 < len(self.indices):
             self.calculateGeneCorrelations()
@@ -414,17 +431,48 @@ class UMAPexplorer(Sketch):
                 self.selGene = sel
                 print("Selected gene", self.selGene)
                 self.calculateGeneMinMax()
-
+                if usePShape:
+                    self.color_shape(EXP_COLOR)
+                
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
             self.exportData()
             
-    def initUI(self):
+    def init_UI(self):
         self.selector = Selector()
         self.scrollList = ScrollableList(self.width/2, 0, 200, self.height)  
         w = self.width - (self.width/2 + 200)
         self.exportBtn = Button(self.width/2 + 200 + w/2 - 75, self.height - 75, 100, 30, "EXPORT")   
-             
-    def showUMAPScatter(self):
+
+    def init_shape(self):
+        x0 = 25
+        y0 = 25
+        w = self.width/2 - 50
+        h = self.height - 50
+
+        self.cellShape = self.create_shape(self.GROUP)
+        for cell in self.cells:
+            sh = cell.create_shape(self, x0, y0, w, h)
+            self.cellShape.add_child(sh)        
+
+    def color_shape(self, mode):
+        if mode == RST_COLOR:
+            self.cellShape.set_fill(self.color(150, 80))
+        elif mode == SEL_COLOR:
+            for idx in range(0, len(self.cells)):
+                cell = self.cells[idx]
+                sh = self.cellShape.get_child(idx)
+                if cell.selected:
+                    cl = self.color(240, 118, 104, 80)                
+                else:
+                    cl = self.color(150, 80)            
+                sh.set_fill(cl)
+        elif mode == EXP_COLOR:
+            for idx in range(0, len(self.cells)):
+                cell = self.cells[idx]
+                sh = self.cellShape.get_child(idx)            
+                sh.set_fill(cell.get_expr_color(self, self.selGene))
+            
+    def show_UMAP_scatter(self):
         x0 = 25
         y0 = 25
         w = self.width/2 - 50
@@ -442,7 +490,11 @@ class UMAPexplorer(Sketch):
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
-            cell.display(self, x0, y0, w, h)
+            if not usePShape:
+                cell.display(self, x0, y0, w, h)
+        
+        if usePShape:
+            self.shape(self.cellShape)        
         
         self.stroke_weight(2)
         self.stroke(120)
@@ -475,9 +527,6 @@ class UMAPexplorer(Sketch):
 
         print("Calculating correlations...") 
 
-        global sortedGenes
-        sortedGenes = []
-
         vproj = []
         rexpr = []
         for i in range(0, len(self.indices)):
@@ -490,15 +539,17 @@ class UMAPexplorer(Sketch):
             r, p = ss.pearsonr(vproj, dexpr[g])
             if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
                 gene = Gene(self.geneNames[g], g, r, p)
-                sortedGenes += [gene]
+                self.sortedGenes += [gene]
 
-        sortedGenes.sort(key=lambda x: x.r, reverse=False)
+        self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
 
-        self.scrollList.setList(sortedGenes)
+        self.scrollList.set_list(self.sortedGenes)
 
         self.requestSelection = False
 
         self.selGene = -1
+        if usePShape:
+            self.color_shape(RST_COLOR)
         print("Done")
 
     def calculateGeneMinMax(self):
@@ -511,8 +562,6 @@ class UMAPexplorer(Sketch):
             self.minGeneExp = min(self.minGeneExp, exp)
             self.maxGeneExp = max(self.maxGeneExp, exp)   
         print("Min/max expression level for gene", self.geneNames[self.selGene], self.minGeneExp, self.maxGeneExp)
-
-        
         
     def showGeneScatter(self):
         x0 = self.width/2 + 200 + 50
@@ -550,8 +599,6 @@ class UMAPexplorer(Sketch):
         self.text("1", x0 + w - 5, y0 + h + 15)
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
         
-        
-        
     def exportData(self):
         print("EXPORTING DATA...")
         rows = []
@@ -563,7 +610,7 @@ class UMAPexplorer(Sketch):
         self.selected_cells = pd.DataFrame.from_records(rows, columns=['index', 'proj'])
 
         rows = []
-        for gene in sortedGenes:
+        for gene in self.sortedGenes:
             row = [gene.r, gene.p]
             rows += [row]
         self.significant_genes = pd.DataFrame.from_records(rows, columns=['R', 'P'])
@@ -580,9 +627,6 @@ class UMAPexplorer(Sketch):
 
         print("BYE")
         self.exit_sketch()
-    
-    
-            
             
     def __init__(self, umap, expr):
         super().__init__()
@@ -592,14 +636,13 @@ class UMAPexplorer(Sketch):
         
         self.cells = []
         self.geneNames = expr.columns.tolist()
-        self.sortedGenes = []
 
         self.selected_cells = []
         self.significant_genes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = ''
         self.selGene = -1
-        
+        self.sortedGenes = []
         
         self.minGeneExp = sys.float_info.max
         self.maxGeneExp = sys.float_info.min
@@ -616,6 +659,9 @@ class UMAPexplorer(Sketch):
         for i in umap.index:
             cell = Cell(i, umap.at[i,'UMAP_1'], umap.at[i,'UMAP_2'])
             cell.normalize(self, min1, max1, min2, max2)
-            cell.setAllExpressions(expr.loc[i].tolist())
+            cell.set_all_expressions(expr.loc[i].tolist())
             cells += [cell]
         self.cells = cells
+        
+        self.cellShape = None
+    
