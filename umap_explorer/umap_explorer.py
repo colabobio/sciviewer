@@ -49,10 +49,10 @@ class Cell:
             a = angleBetween(dirv, celv)        
             self.proj = np.cos(a) * la.norm(celv) / la.norm(dirv)
 
-    def getExprColor(self, p5obj, selGene):
+    def getExprColor(self, p5obj, minGeneExp, maxGeneExp, selGene):
         p5obj.color_mode(p5obj.HSB, 360, 100, 100)
         f = p5obj.constrain(p5obj.remap(self.expression[selGene], 
-                                        p5obj.minGeneExp, p5obj.maxGeneExp, 0, 1), 0, 1)
+                                        minGeneExp, maxGeneExp, 0, 1), 0, 1)
         cl = p5obj.color((1 - f) * 170 + f * 233, 74, 93, 80)
         p5obj.color_mode(p5obj.RGB, 255, 255, 255)
         return cl
@@ -69,6 +69,7 @@ class py5renderer(Sketch):
     def __init__(self, dataobj):
         super().__init__()
         self.data = dataobj
+        self.indices = []
         self.selGene = -1
         self.selectedGene = False
         self.requestSelection = False
@@ -147,7 +148,7 @@ class py5renderer(Sketch):
         h = self.height - 50
 
         self.umapShape = self.create_shape(self.GROUP)
-        for cell in self.cells:
+        for cell in self.data.cells:
             sh = cell.createShape(self, x0, y0, w, h)
             self.umapShape.add_child(sh)
 
@@ -159,9 +160,9 @@ class py5renderer(Sketch):
         self.scatterShape = self.create_shape(self.GROUP)        
         for i in range(0, len(self.indices)):
             idx = self.indices[i]
-            cell = self.cells[idx]
+            cell = self.data.cells[idx]
             x = self.remap(cell.proj, 0, 1, x0 + 5, x0 + w - 5)
-            y = self.remap(cell.expression[self.selGene], self.minGeneExp, self.maxGeneExp, y0 + w - 5, y0 + 5)
+            y = self.remap(cell.expression[self.selGene], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
             sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
             sh.set_stroke(False)
             sh.set_fill(self.color(150, 80))
@@ -171,8 +172,8 @@ class py5renderer(Sketch):
         if mode == RST_COLOR:
             self.umapShape.set_fill(self.color(150, 80))
         elif mode == SEL_COLOR:
-            for idx in range(0, len(self.cells)):
-                cell = self.cells[idx]
+            for idx in range(0, len(self.data.cells)):
+                cell = self.data.cells[idx]
                 sh = self.umapShape.get_child(idx)
                 if cell.selected:
                     cl = self.color(240, 118, 104, 80)                
@@ -180,10 +181,10 @@ class py5renderer(Sketch):
                     cl = self.color(150, 80)            
                 sh.set_fill(cl)
         elif mode == EXP_COLOR:
-            for idx in range(0, len(self.cells)):
-                cell = self.cells[idx]
+            for idx in range(0, len(self.data.cells)):
+                cell = self.data.cells[idx]
                 sh = self.umapShape.get_child(idx)            
-                sh.set_fill(cell.getExprColor(self, self.selGene))
+                sh.set_fill(cell.getExprColor(self, self.data.minGeneExp, self.data.maxGeneExp, self.selGene))
 
     def showUMAPScatter(self):
         x0 = 25
@@ -247,8 +248,8 @@ class py5renderer(Sketch):
         self.rect(x0, y0, w, h)
 
         self.fill(130)
-        self.text("{:1.2f}".format(self.maxGeneExp), x0 - 20, y0 + 5)
-        self.text("{:1.2f}".format(self.minGeneExp), x0 - 20, y0 + h - 5)
+        self.text("{:1.2f}".format(self.data.maxGeneExp), x0 - 20, y0 + 5)
+        self.text("{:1.2f}".format(self.data.minGeneExp), x0 - 20, y0 + h - 5)
         self.push_matrix()
         self.translate(x0 - 20, y0 + h/2)
         self.rotate(-self.HALF_PI)
@@ -319,19 +320,19 @@ class UMAPexplorer():
         self.renderer.requestSelection = False
 
         self.renderer.selGene = -1
-        self.colorUMAPShape(RST_COLOR)
+        self.renderer.colorUMAPShape(RST_COLOR)
         print("Done")
 
     def calculateGeneMinMax(self, indices, selGene):
         self.minGeneExp = sys.float_info.max
         self.maxGeneExp = sys.float_info.min
         for i in range(0, len(indices)):
-            idx = self.indices[i]
+            idx = indices[i]
             cell = self.cells[idx]
             exp = cell.expression[selGene]
             self.minGeneExp = min(self.minGeneExp, exp)
             self.maxGeneExp = max(self.maxGeneExp, exp)   
-        print("Min/max expression level for gene", self.geneNames[self.selGene], self.minGeneExp, self.maxGeneExp)
+        print("Min/max expression level for gene", self.geneNames[selGene], self.minGeneExp, self.maxGeneExp)
 
     def exportData(self, indices, selGene):
         print("EXPORTING DATA...")
