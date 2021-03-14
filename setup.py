@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
       long_description = fh.read()
 
 setup(name='umap_explorer',
-      version='0.1',
+      version='0.2',
       description='Tool for interactive exploration of 2D embeddings in Jupyter',
       long_description=long_description,
       long_description_content_type='text/markdown',

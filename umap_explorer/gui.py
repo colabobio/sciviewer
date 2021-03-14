@@ -1,9 +1,13 @@
 import numpy as np
 import numpy.linalg as la
 
+CLOSED = 0
+SET_SPINE = 1
+SET_WIDTH = 2
+COMPLETED = 3
+
 itemHeight = 50
 itemSpace = 10
-
 
 def angleBetween(v1, v2):
     # Angle calculation A
@@ -133,12 +137,7 @@ class Button:
   
     def contains(self, mx, my):
         return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
-    
-    
-CLOSED = 0
-SET_SPINE = 1
-SET_WIDTH = 2
-COMPLETED = 3
+
 
 class Selector():
     def __init__(self):
@@ -287,8 +286,8 @@ class Selector():
                               [0.0, 1.0, 0.0]])        
             
     def rotate(self, angle):
-        s = np.sin(angle);
-        c = np.cos(angle);
+        s = np.sin(angle)
+        c = np.cos(angle)
         
         temp1 = self.tmat[0][0]
         temp2 = self.tmat[0][1]
