@@ -260,7 +260,15 @@ class py5renderer(Sketch):
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
      
 class UMAPexplorer():
-    def __init__(self, umap, expr):
+    def __init__(self, umap, expr, genes=None):
+        if type(umap) is pd.core.frame.DataFrame:
+            self.umap = umap.values.copy()
+        elif type(umap) is np.ndarray:
+            self.umap = umap.copy()
+        else:
+            s
+        
+        
         self.umap = umap
         self.expr = expr
 
@@ -291,10 +299,17 @@ class UMAPexplorer():
             cells += [cell]
         self.cells = cells
 
-    def calculateGeneCorrelations(self, indices):
+        
+        
+        
+        
+
+    def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
 
-        print("Calculating correlations...") 
+        print("Calculating differential expression...")
+        
+        ss.ttest_ind_from_stats
 
         self.sortedGenes = []
 
@@ -321,6 +336,11 @@ class UMAPexplorer():
         self.renderer.selGene = -1
         self.renderer.colorUMAPShape(RST_COLOR)
         print("Done")
+        
+        
+
+        
+        
 
     def calculateGeneMinMax(self, indices, selGene):
         self.minGeneExp = sys.float_info.max
