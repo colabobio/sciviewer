@@ -260,20 +260,31 @@ class py5renderer(Sketch):
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
      
 class UMAPexplorer():
-    def __init__(self, umap, expr, genes=None):
+    def __init__(self, umap, expr, gene_names=None, cell_names=None):
         if type(umap) is pd.core.frame.DataFrame:
             self.umap = umap.values.copy()
         elif type(umap) is np.ndarray:
             self.umap = umap.copy()
         else:
-            s
+            sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
         
-        
-        self.umap = umap
-        self.expr = expr
+        if type(expr) is pd.core.frame.DataFrame:
+            self.expr = expr.values.copy()
+            self.geneNames = expr.columns.tolist()
+            self.cellNames = expr.index.tolist()
+        elif type(expr) is np.ndarray:
+            self.expr = expr.copy()
+            if gene_names is None:
+                self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
+            if cell_names is None:
+                self.cellNames = np.arange(expr.shape[0])                               
+        else:
+            sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
 
+        if self.umap.shape[0] != self.expr.shape[0]:
+            sys.exit('# of cells not equal between 2D embedding and Expression matrix inputs')
+            
         self.cells = []
-        self.geneNames = expr.columns.tolist()
         self.sortedGenes = []
 
         self.selected_cells = []
@@ -284,19 +295,19 @@ class UMAPexplorer():
         self.pearsonsThreshold = 0.1
         self.pvalueThreshold = 0.05
         
-        min1 = umap["UMAP_1"].min()
-        max1 = umap["UMAP_1"].max()
-        min2 = umap["UMAP_2"].min()
-        max2 = umap["UMAP_2"].max()
+        min1 = self.umap[:,0].min()
+        max1 = self.umap[:,0].max()
+        min2 = self.umap[:,1].min()
+        max2 = self.umap[:,1].max()
 
         self.renderer = py5renderer(self)
         
         cells = []
-        for i in umap.index:
-            cell = Cell(i, umap.at[i,'UMAP_1'], umap.at[i,'UMAP_2'])
+        for i in range(self.umap.shape[0]):
+            cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
             cell.normalize(self.renderer, min1, max1, min2, max2)
-            cell.setAllExpressions(expr.loc[i].tolist())
-            cells += [cell]
+            cell.setAllExpressions(self.expr[i,:].tolist())
+            cells.append(cell)
         self.cells = cells
 
         
@@ -339,7 +350,36 @@ class UMAPexplorer():
         
         
 
-        
+    def calculateGeneCorrelations(self, indices):
+        print("Selected", len(indices), "cells")
+
+        print("Calculating correlations...") 
+
+        self.sortedGenes = []
+
+        vproj = []
+        rexpr = []
+        for i in range(0, len(indices)):
+            c = indices[i]
+            cell = self.cells[c]
+            vproj += [cell.proj]
+            rexpr += [cell.expression]
+        dexpr = pd.DataFrame.from_records(rexpr)
+        for g in range (0, len(self.geneNames)):
+            r, p = ss.pearsonr(vproj, dexpr[g])
+            if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
+                gene = Gene(self.geneNames[g], g, r, p)
+                self.sortedGenes += [gene]
+
+        self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
+
+        self.renderer.scrollList.setList(self.sortedGenes)
+
+        self.renderer.requestSelection = False
+
+        self.renderer.selGene = -1
+        self.renderer.colorUMAPShape(RST_COLOR)
+        print("Done")       
         
 
     def calculateGeneMinMax(self, indices, selGene):
