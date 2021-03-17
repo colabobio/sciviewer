@@ -196,9 +196,8 @@ class py5renderer(Sketch):
             self.indices = []
             self.selector.normalize(self, x0, y0, w, h)        
         
-        for idx in range(0, len(self.data.cells)):
-            cell = self.data.cells[idx]
-            if self.requestSelection:            
+            for idx in range(0, len(self.data.cells)):
+                cell = self.data.cells[idx]
                 self.selector.apply(self, cell, x0, y0, w, h)
                 cell.project(self.selector)
                 if cell.selected:
