@@ -75,6 +75,7 @@ class py5renderer(Sketch):
         self.requestSelection = False
         self.umapShape = None
         self.scatterShape = None
+        self.mode = 'Projection' ## DiffExp or Projection
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -97,14 +98,29 @@ class py5renderer(Sketch):
         self.showUMAPScatter()
 
         if self.requestSelection and 0 < len(self.indices):
-            self.data.calculateDiffExpr(self.indices)
-            self.data.calculateGeneCorrelations(self.indices)
+            if self.mode == 'DiffExp':
+                # Calculate differential expression
+                sortedGenes = self.data.calculateDiffExpr(self.indices)
+            elif self.mode == 'Projection':
+                # Calculate correlation of expression with projection onto axis in UMAP space
+                sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+                
+            self.scrollList.setList(sortedGenes)
+            self.requestSelection = False
+            self.selGene = -1
+            self.colorUMAPShape(RST_COLOR)               
 
         self.selector.display(self)
         self.scrollList.display(self)
 
         if self.selGene != -1:
+            if self.mode == 'Projection':
+                self.showGeneScatter()
+            elif self.mode == 'DiffExp':
+                # Need to make violin plot visual
+                pass
             self.showGeneScatter()
+        
         self.exportBtn.display(self)
 
     def mouse_pressed(self):
@@ -259,7 +275,8 @@ class py5renderer(Sketch):
         self.text("0", x0 + 5, y0 + h + 15)
         self.text("1", x0 + w - 5, y0 + h + 15)
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
-     
+
+
 class UMAPexplorer():
     def __init__(self, umap, expr, gene_names=None, cell_names=None):
         if type(umap) is pd.core.frame.DataFrame:
@@ -285,7 +302,7 @@ class UMAPexplorer():
             sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
 
         if self.umap.shape[0] != self.expr.shape[0]:
-            sys.exit('# of cells not equal between 2D embedding and Expression matrix inputs')
+            sys.exit('# of cells not equal between 2D embedding and expression matrix inputs')
             
         self.cells = []
         self.sortedGenes = []
@@ -296,6 +313,7 @@ class UMAPexplorer():
         self.selected_gene_cell_data = ''
 
         self.pearsonsThreshold = 0.1
+        self.tThreshold = 0.1
         self.pvalueThreshold = 0.05
         
         min1 = self.umap[:,0].min()
@@ -316,7 +334,6 @@ class UMAPexplorer():
         self.gene_sum = self.expr.sum(axis=0)
         self.gene_sqsum = (self.expr**2).sum(axis=0)
 
-
     def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
 
@@ -335,37 +352,14 @@ class UMAPexplorer():
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N,
                                          equal_var=False, alternative='two-sided')
-        
-        print(T)
-        print(P)
 
-        '''
-        self.sortedGenes = []
-
-        vproj = []
-        rexpr = []
-        for i in range(0, len(indices)):
-            c = indices[i]
-            cell = self.cells[c]
-            vproj += [cell.proj]
-            rexpr += [cell.expression]
-        dexpr = pd.DataFrame.from_records(rexpr)
         for g in range (0, len(self.geneNames)):
-            r, p = ss.pearsonr(vproj, dexpr[g])
-            if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
-                gene = Gene(self.geneNames[g], g, r, p)
+            if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
+                gene = Gene(self.geneNames[g], g, T[g], P[g])
                 self.sortedGenes += [gene]
 
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
-
-        self.renderer.scrollList.setList(self.sortedGenes)
-
-        self.renderer.requestSelection = False
-
-        self.renderer.selGene = -1
-        self.renderer.colorUMAPShape(RST_COLOR)
-        print("Done")
-        '''
+        return(self.sortedGenes)
 
     def calculateGeneCorrelations(self, indices):
         print("Selected", len(indices), "cells")
@@ -386,7 +380,7 @@ class UMAPexplorer():
                 self.sortedGenes.append(gene)
         
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
-
+        '''
         self.renderer.scrollList.setList(self.sortedGenes)
 
         self.renderer.requestSelection = False
@@ -394,6 +388,8 @@ class UMAPexplorer():
         self.renderer.selGene = -1
         self.renderer.colorUMAPShape(RST_COLOR)
         print("Done")
+        '''
+        return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
         self.minGeneExp = sys.float_info.max
