@@ -99,7 +99,10 @@ class py5renderer(Sketch):
         if self.requestSelection and 0 < len(self.indices):
             self.data.calculateGeneCorrelations(self.indices)
 
+        self.setClip()
         self.selector.display(self)
+        self.delClip()
+
         self.scrollList.display(self)
 
         if self.selGene != -1:
@@ -259,6 +262,16 @@ class py5renderer(Sketch):
         self.text("0", x0 + 5, y0 + h + 15)
         self.text("1", x0 + w - 5, y0 + h + 15)
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
+
+    def setClip(self):
+        x0 = 25
+        y0 = 25
+        w = self.width/2 - 50
+        h = self.height - 50       
+        self.clip(x0 - 2.5, y0 - 2.5, w + 5, h + 5)
+
+    def delClip(self):
+        self.no_clip()        
      
 class UMAPexplorer():
     def __init__(self, umap, expr):
