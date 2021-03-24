@@ -5,7 +5,7 @@ import scipy.stats as ss
 import sys
 import py5
 from py5 import Sketch
-from .gui import ScrollableList, ScrollBar, Button, Selector, angleBetween
+from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector, angleBetween
 
 SEL_COLOR = 1
 EXP_COLOR = 2
@@ -75,6 +75,8 @@ class py5renderer(Sketch):
         self.requestSelection = False
         self.umapShape = None
         self.scatterShape = None
+        self.exportBtn = None
+        self.modeBtn = None
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -107,6 +109,8 @@ class py5renderer(Sketch):
 
         if self.selGene != -1:
             self.showGeneScatter()
+            
+        self.modeBtn.display(self)
         self.exportBtn.display(self)
 
     def mouse_pressed(self):
@@ -136,13 +140,22 @@ class py5renderer(Sketch):
                 print("Selected gene", self.data.geneNames[self.selGene])
 
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
-            self.data.exportData(self.indices, self.selGene)        
+            self.data.exportData(self.indices, self.selGene)
+
+        elif self.modeBtn.contains(self.mouse_x, self.mouse_y):
+            print("Selected mode", self.modeBtn.state)
         
     def initUI(self):
         self.selector = Selector()
-        self.scrollList = ScrollableList(self.width/2, 0, 200, self.height)  
-        w = self.width - (self.width/2 + 200)
-        self.exportBtn = Button(self.width/2 + 200 + w/2 - 75, self.height - 75, 100, 30, "EXPORT")  
+        self.scrollList = ScrollableList(self.width/2, 0, 200, self.height)
+
+        w = 100
+        x0 = self.width/2 + 100 + self.width/4 - w/2
+        self.exportBtn = Button(x0, self.height - 75, w, 30, "EXPORT")  
+
+        w = 250
+        x0 = self.width/2 + 100 + self.width/4 - w/2        
+        self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
     def initUMAPShape(self):
         x0 = 25
@@ -157,7 +170,7 @@ class py5renderer(Sketch):
 
     def initScatterShape(self):
         x0 = self.width/2 + 200 + 50
-        w = self.width - x0 - 100
+        w = self.width - x0 - 50
         h = w
         y0 = (self.height - h) / 2        
         self.scatterShape = self.create_shape(self.GROUP)        
@@ -236,14 +249,14 @@ class py5renderer(Sketch):
         
     def showGeneScatter(self):
         x0 = self.width/2 + 200 + 50
-        w = self.width - x0 - 100
+        w = self.width - x0 - 50
         h = w
         y0 = (self.height - h) / 2
 
         self.shape(self.scatterShape)
 
         self.fill(100)
-        self.text(self.data.geneNames[self.selGene], x0, 0, w, y0)
+        self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
 
         self.stroke_weight(2)
         self.stroke(120)

@@ -139,6 +139,46 @@ class Button:
         return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
 
 
+class ToggleButton:
+    def __init__(self, x, y, w, h, l1, l2):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.label1 = l1
+        self.label2 = l2
+        self.state = 1
+  
+    def display(self, py5obj):
+        py5obj.no_stroke()
+
+        if self.state == 1:
+            py5obj.fill(120)
+        else:
+            py5obj.fill(180)
+        py5obj.rect(self.x, self.y, self.w/2, self.h, 15, 0, 0, 15)
+    
+        py5obj.fill(255)
+        py5obj.text(self.label1, self.x, self.y, self.w/2, self.h)
+  
+        if self.state == 1:
+            py5obj.fill(180)
+        else:
+            py5obj.fill(120)
+        py5obj.rect(self.x + self.w/2, self.y, self.w/2, self.h, 0, 15, 15, 0)
+    
+        py5obj.fill(255)
+        py5obj.text(self.label2, self.x + self.w/2, self.y, self.w/2, self.h)
+
+    def contains(self, mx, my):
+        inside = self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+        if inside:
+            if self.x <= mx and mx <= self.x + self.w/2:
+                self.state = 1
+            else:
+                self.state = 2
+        return inside
+
 class Selector():
     def __init__(self):
         self.state = CLOSED
