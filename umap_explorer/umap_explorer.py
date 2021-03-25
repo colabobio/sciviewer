@@ -98,7 +98,7 @@ class py5renderer(Sketch):
 
         self.showUMAPScatter()
 
-        if self.requestSelection and 0 < len(self.indices):
+        if self.requestSelection and 1 < len(self.indices):
             self.data.calculateGeneCorrelations(self.indices)
 
         self.setClip()
