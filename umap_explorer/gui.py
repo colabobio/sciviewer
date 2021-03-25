@@ -33,14 +33,17 @@ class ScrollableList:
         self.genes = []
         self.selItem = -1
         self.dragged = False
+        self.visible = False
   
     def setList(self, genes):
         self.genes = genes
-        self.scrollbar = ScrollBar(50 * len(genes), 0.9 * self.w, 0.1 * self.w, self.h)
+        toth = (itemHeight + itemSpace) * len(genes)
+        self.visible = self.h < toth 
+        self.scrollbar = ScrollBar(toth, 0.9 * self.w, 0.1 * self.w, self.h)
         self.selItem = -1
   
     def display(self, py5obj):
-        if not self.genes or len(self.genes) == 0: return
+        if not self.genes or len(self.genes) == 0 or not self.visible: return
     
         py5obj.push_matrix()
         py5obj.translate(self.x, self.y)
@@ -72,14 +75,15 @@ class ScrollableList:
   
     def press(self):
         self.dragged = False
-        self.scrollbar.setOpen()
 
     def drag(self, my, pmy):
         self.dragged = True
         self.scrollbar.update(pmy - my)
 
+    def contains(self, mx, my):
+        return self.x + 20 <= mx and mx <= self.x + 20 + 0.85 * self.w and self.y <= my and my <= self.y + self.h        
+
     def release(self, my):
-        self.scrollbar.setClose()
         if not self.dragged:
             l = my - self.scrollbar.translateY
             self.selItem = int(l / itemHeight)
@@ -95,14 +99,7 @@ class ScrollBar:
         self.barWidth = bw
         self.translateY = 0
         self.posX = x0
-        self.opacity = 255
         self.listHeight = lh
-
-    def setOpen(self):
-        self.opacity = 255
-
-    def setClose(self):
-        self.opacity = 255
 
     def update(self, dy):
         if self.totalHeight + self.translateY + dy > self.listHeight:
@@ -110,17 +107,16 @@ class ScrollBar:
             if self.translateY > 0: self.translateY = 0
 
     def display(self, py5obj):
-        if 0 < self.opacity:
-            frac = self.listHeight / self.totalHeight
-            x = self.posX
-            y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
-            w = self.barWidth
-            h = frac * self.listHeight
-            py5obj.push_style()
-            py5obj.no_stroke()
-            py5obj.fill(150)
-            py5obj.rect(x, y, w, h, w)
-            py5obj.pop_style()
+        frac = self.listHeight / self.totalHeight
+        x = self.posX
+        y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
+        w = self.barWidth
+        h = frac * self.listHeight
+        py5obj.push_style()
+        py5obj.no_stroke()
+        py5obj.fill(150)
+        py5obj.rect(x, y, w, h, w)
+        py5obj.pop_style()
             
             
 class Button:

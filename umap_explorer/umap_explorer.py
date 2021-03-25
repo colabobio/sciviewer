@@ -11,6 +11,9 @@ SEL_COLOR = 1
 EXP_COLOR = 2
 RST_COLOR = 3
 
+GENE_WIDTH = 200
+MARGIN = 50
+
 class Gene():
     def __init__(self, n, i, r, p):
         self.name = n
@@ -116,13 +119,13 @@ class py5renderer(Sketch):
     def mouse_pressed(self):
         if self.mouse_x < self.width/2:
             self.selector.press(self.mouse_x, self.mouse_y)
-        elif self.mouse_x < self.width/2 + 200:
+        elif self.mouse_x < self.width/2 + GENE_WIDTH:
             self.scrollList.press()
 
     def mouse_dragged(self):
         if self.mouse_x < self.width/2:
             self.selector.drag(self.mouse_x, self.mouse_y)
-        elif self.mouse_x < self.width/2 + 200:
+        elif self.mouse_x < self.width/2 + GENE_WIDTH:
             self.scrollList.drag(self.mouse_y, self.pmouse_y)
 
     def mouse_moved(self):
@@ -132,7 +135,7 @@ class py5renderer(Sketch):
     def mouse_released(self):
         if self.mouse_x < self.width/2:
             self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
-        elif self.mouse_x < self.width/2 + 200:
+        elif self.scrollList.contains(self.mouse_x, self.mouse_y):
             sel = self.scrollList.release(self.mouse_y)
             if sel != -1 and sel != self.selGene:
                 self.selGene = sel
@@ -147,7 +150,7 @@ class py5renderer(Sketch):
         
     def initUI(self):
         self.selector = Selector()
-        self.scrollList = ScrollableList(self.width/2, 0, 200, self.height)
+        self.scrollList = ScrollableList(self.width/2, 0, GENE_WIDTH, self.height)
 
         w = 100
         x0 = self.width/2 + 100 + self.width/4 - w/2
@@ -160,8 +163,8 @@ class py5renderer(Sketch):
     def initUMAPShape(self):
         x0 = 25
         y0 = 25
-        w = self.width/2 - 50
-        h = self.height - 50
+        w = self.width/2 - MARGIN
+        h = self.height - MARGIN
 
         self.umapShape = self.create_shape(self.GROUP)
         for cell in self.data.cells:
@@ -169,8 +172,8 @@ class py5renderer(Sketch):
             self.umapShape.add_child(sh)
 
     def initScatterShape(self):
-        x0 = self.width/2 + 200 + 50
-        w = self.width - x0 - 50
+        x0 = self.width/2 + GENE_WIDTH + MARGIN
+        w = self.width - x0 - MARGIN
         h = w
         y0 = (self.height - h) / 2        
         self.scatterShape = self.create_shape(self.GROUP)        
@@ -205,8 +208,8 @@ class py5renderer(Sketch):
     def showUMAPScatter(self):
         x0 = 25
         y0 = 25
-        w = self.width/2 - 50
-        h = self.height - 50
+        w = self.width/2 - MARGIN
+        h = self.height - MARGIN
        
         if self.requestSelection:
             self.indices = []
@@ -248,8 +251,8 @@ class py5renderer(Sketch):
         self.pop_matrix()
         
     def showGeneScatter(self):
-        x0 = self.width/2 + 200 + 50
-        w = self.width - x0 - 50
+        x0 = self.width/2 + GENE_WIDTH + MARGIN
+        w = self.width - x0 - MARGIN
         h = w
         y0 = (self.height - h) / 2
 
@@ -279,8 +282,8 @@ class py5renderer(Sketch):
     def setClip(self):
         x0 = 25
         y0 = 25
-        w = self.width/2 - 50
-        h = self.height - 50       
+        w = self.width/2 - MARGIN
+        h = self.height - MARGIN       
         self.clip(x0 - 2.5, y0 - 2.5, w + 5, h + 5)
 
     def delClip(self):
