@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib as mp
 import numpy.linalg as la
 import scipy.stats as ss
 import sys
@@ -70,12 +71,13 @@ class py5renderer(Sketch):
         super().__init__()
         self.data = dataobj
         self.indices = []
+        self.excluded_indices = []
         self.selGene = -1
         self.selectedGene = False
         self.requestSelection = False
         self.umapShape = None
         self.scatterShape = None
-        self.mode = 'Projection' ## DiffExp or Projection
+        self.mode = 'DiffExp' ## DiffExp or Projection
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -89,16 +91,23 @@ class py5renderer(Sketch):
     def draw(self):        
         self.background(255)
 
-        if self.selectedGene:
+        if self.selectedGene:        
             self.data.calculateGeneMinMax(self.indices, self.selGene)
-            self.initScatterShape()
-            self.colorUMAPShape(EXP_COLOR)
+            if self.mode == 'Projection':
+                self.initScatterShape()
+            elif self.mode == 'DiffExp':
+                self.initViolinShape()
+            self.colorUMAPShape(EXP_COLOR)            
             self.selectedGene = False
-
+                
         self.showUMAPScatter()
 
         if self.requestSelection and 0 < len(self.indices):
             if self.mode == 'DiffExp':
+                # Obtain set of unselected cells
+                setindices = set(self.indices)
+                self.excluded_indices = [i for i in range(self.data.num_cells) if i not in setindices]
+                
                 # Calculate differential expression
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
             elif self.mode == 'Projection':
@@ -118,8 +127,7 @@ class py5renderer(Sketch):
                 self.showGeneScatter()
             elif self.mode == 'DiffExp':
                 # Need to make violin plot visual
-                pass
-            self.showGeneScatter()
+                self.showGeneViolin()
         
         self.exportBtn.display(self)
 
@@ -184,6 +192,46 @@ class py5renderer(Sketch):
             sh.set_stroke(False)
             sh.set_fill(self.color(150, 80))
             self.scatterShape.add_child(sh)
+           
+    def initViolinShape(self, bw_method=None):
+        def _kde_method(X, coords):
+            if np.all(X[0] == X):
+                return (X[0] == coords).astype(float)
+            kde = mp.mlab.GaussianKDE(X, bw_method)
+            return kde.evaluate(coords)
+        
+        selected_values = self.data.expr[self.indices, self.selGene]
+        excluded_values = self.data.expr[self.excluded_indices, self.selGene]
+        
+        selected_values_nonzero = [x for x in selected_values if x != 0]
+        excluded_values_nonzero = [x for x in excluded_values if x != 0]
+        
+        self.selected_stats = mp.cbook.violin_stats(selected_values, _kde_method)
+        self.excluded_stats = mp.cbook.violin_stats(excluded_values, _kde_method)
+        ## See https://matplotlib.org/stable/_modules/matplotlib/axes/_axes.html#Axes.violin for drawing the actual violins
+        
+        '''
+        x0 = self.width/2 + 200 + 50
+        w = self.width - x0 - 100
+        h = w
+        y0 = (self.height - h) / 2        
+        self.scatterShape = self.create_shape(self.GROUP)        
+        for i in range(0, len(self.indices)):
+            idx = self.indices[i]
+            cell = self.data.cells[idx]
+            x = self.remap(cell.proj, 0, 1, x0 + 5, x0 + w - 5)
+            y = self.remap(cell.expression[self.selGene], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
+            sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
+            sh.set_stroke(False)
+            sh.set_fill(self.color(150, 80))
+            self.scatterShape.add_child(sh)
+        '''
+            
+            
+            
+            
+            
+            
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -275,6 +323,10 @@ class py5renderer(Sketch):
         self.text("0", x0 + 5, y0 + h + 15)
         self.text("1", x0 + w - 5, y0 + h + 15)
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
+        
+        
+    def showGeneViolin(self):
+        pass
 
 
 class UMAPexplorer():
@@ -350,8 +402,7 @@ class UMAPexplorer():
         remainder_stds = np.sqrt((self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1))
         selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
         
-        (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N,
-                                         equal_var=False, alternative='two-sided')
+        (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
 
         for g in range (0, len(self.geneNames)):
             if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
