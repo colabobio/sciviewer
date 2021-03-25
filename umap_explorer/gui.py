@@ -36,7 +36,7 @@ class ScrollableList:
   
     def setList(self, genes):
         self.genes = genes
-        self.scrollbar = ScrollBar(50 * len(genes), 0.1 * self.w, self.w, self.h)
+        self.scrollbar = ScrollBar(50 * len(genes), 0.9 * self.w, 0.1 * self.w, self.h)
         self.selItem = -1
   
     def display(self, py5obj):
@@ -51,7 +51,7 @@ class ScrollableList:
             py5obj.fill(210)
             rx = 20
             ry = i * itemHeight + itemSpace
-            rw = self.w - 40
+            rw = 0.85 * self.w - 20
             rh = itemHeight - itemSpace
             if self.selItem == i:
                 py5obj.stroke(240, 118, 104)
@@ -62,8 +62,12 @@ class ScrollableList:
             gene = self.genes[i]
             text = gene.name + " " + "{:1.2f}".format(gene.r)
             py5obj.text(text, rx, ry, rw, rh)
+
         py5obj.pop_matrix()
+        py5obj.fill(220)
+        py5obj.rect(0.9 * self.w, 0, 0.1 * self.w, self.h)
         self.scrollbar.display(py5obj)
+        py5obj.no_stroke()        
         py5obj.pop_matrix()
   
     def press(self):
@@ -86,19 +90,19 @@ class ScrollableList:
             return -1
 
 class ScrollBar:    
-    def __init__(self, th, bw, lw, lh):
+    def __init__(self, th, x0, bw, lh):
         self.totalHeight = th
         self.barWidth = bw
         self.translateY = 0
-        self.opacity = 0    
-        self.listWidth = lw
+        self.posX = x0
+        self.opacity = 255
         self.listHeight = lh
 
     def setOpen(self):
-        self.opacity = 150
+        self.opacity = 255
 
     def setClose(self):
-        self.opacity = 0
+        self.opacity = 255
 
     def update(self, dy):
         if self.totalHeight + self.translateY + dy > self.listHeight:
@@ -108,14 +112,14 @@ class ScrollBar:
     def display(self, py5obj):
         if 0 < self.opacity:
             frac = self.listHeight / self.totalHeight
-            x = self.listWidth - 1.5 * self.barWidth
+            x = self.posX
             y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
             w = self.barWidth
             h = frac * self.listHeight
             py5obj.push_style()
             py5obj.no_stroke()
-            py5obj.fill(150, self.opacity)
-            py5obj.rect(x, y, w, h, 0.2 * w)
+            py5obj.fill(150)
+            py5obj.rect(x, y, w, h, w)
             py5obj.pop_style()
             
             
