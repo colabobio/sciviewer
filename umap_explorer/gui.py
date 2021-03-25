@@ -78,7 +78,8 @@ class ScrollableList:
 
     def drag(self, my, pmy):
         self.dragged = True
-        self.scrollbar.update(pmy - my)
+        # self.scrollbar.update(pmy - my)
+        self.scrollbar.update(my)
 
     def contains(self, mx, my):
         return self.x + 20 <= mx and mx <= self.x + 20 + 0.85 * self.w and self.y <= my and my <= self.y + self.h        
@@ -99,17 +100,30 @@ class ScrollBar:
         self.barWidth = bw
         self.translateY = 0
         self.posX = x0
+        self.posY = 0
         self.listHeight = lh
 
-    def update(self, dy):
-        if self.totalHeight + self.translateY + dy > self.listHeight:
-            self.translateY += dy
-            if self.translateY > 0: self.translateY = 0
+    # def update(self, dy):
+    def update(self, y):
+        self.posY = y
+        self.translateY = -y * float(self.totalHeight) / float(self.listHeight)
+        
+        
+        # py5obj.remap(y, 0, self.listHeight, 0, -self.totalHeight)
+
+# self.translateY / self.totalHeight
+
+#         py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
+
+#         if self.totalHeight + y > self.listHeight:
+#             self.translateY = -y
+#             if self.translateY > 0: self.translateY = 0
 
     def display(self, py5obj):
         frac = self.listHeight / self.totalHeight
         x = self.posX
-        y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
+        # y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
+        y = self.posY
         w = self.barWidth
         h = frac * self.listHeight
         py5obj.push_style()
