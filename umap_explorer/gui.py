@@ -69,9 +69,9 @@ class ScrollableList:
 
         py5obj.pop_matrix()
         py5obj.fill(220)
+        py5obj.no_stroke()
         py5obj.rect(0.9 * self.w, 0, 0.1 * self.w, self.h)
-        self.scrollbar.display(py5obj)
-        py5obj.no_stroke()        
+        self.scrollbar.display(py5obj)        
         py5obj.pop_matrix()
   
     def press(self):
@@ -93,7 +93,8 @@ class ScrollableList:
             l = my - self.scrollbar.translateY
             newItem = int(l / itemHeight)
             if self.selItem == newItem:
-                self.selItem = -1 # deselect
+                # self.selItem = -1 # deselect
+                pass
             else:
                 self.selItem = newItem
         elif self.pressed and insideDragArea:
