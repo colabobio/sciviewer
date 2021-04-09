@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import matplotlib as mp
 import numpy.linalg as la
 import scipy.stats as ss
 import sys
@@ -73,13 +74,15 @@ class py5renderer(Sketch):
         super().__init__()
         self.data = dataobj
         self.indices = []
+        self.excluded_indices = []
         self.selGene = -1
         self.selectedGene = False
         self.requestSelection = False
         self.umapShape = None
         self.scatterShape = None
         self.exportBtn = None
-        self.modeBtn = None
+        self.modeBtn = None        
+        self.mode = 'DiffExp' ## DiffExp or Projection
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -93,16 +96,33 @@ class py5renderer(Sketch):
     def draw(self):        
         self.background(255)
 
-        if self.selectedGene:
+        if self.selectedGene:        
             self.data.calculateGeneMinMax(self.indices, self.selGene)
-            self.initScatterShape()
-            self.colorUMAPShape(EXP_COLOR)
+            if self.mode == 'Projection':
+                self.initScatterShape()
+            elif self.mode == 'DiffExp':
+                self.initViolinShape()
+            self.colorUMAPShape(EXP_COLOR)            
             self.selectedGene = False
-
+                
         self.showUMAPScatter()
 
         if self.requestSelection and 1 < len(self.indices):
-            self.data.calculateGeneCorrelations(self.indices)
+            if self.mode == 'DiffExp':
+                # Obtain set of unselected cells
+                setindices = set(self.indices)
+                self.excluded_indices = [i for i in range(self.data.num_cells) if i not in setindices]
+                
+                # Calculate differential expression
+                sortedGenes = self.data.calculateDiffExpr(self.indices)
+            elif self.mode == 'Projection':
+                # Calculate correlation of expression with projection onto axis in UMAP space
+                sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+                
+            self.scrollList.setList(sortedGenes)
+            self.requestSelection = False
+            self.selGene = -1
+            self.colorUMAPShape(RST_COLOR)               
 
         self.setClip()
         self.selector.display(self)
@@ -111,8 +131,12 @@ class py5renderer(Sketch):
         self.scrollList.display(self)
 
         if self.selGene != -1:
-            self.showGeneScatter()
-            
+            if self.mode == 'Projection':
+                self.showGeneScatter()
+            elif self.mode == 'DiffExp':
+                # Need to make violin plot visual
+                self.showGeneViolin()
+
         self.modeBtn.display(self)
         self.exportBtn.display(self)
 
@@ -185,6 +209,46 @@ class py5renderer(Sketch):
             sh.set_stroke(False)
             sh.set_fill(self.color(150, 80))
             self.scatterShape.add_child(sh)
+           
+    def initViolinShape(self, bw_method=None):
+        def _kde_method(X, coords):
+            if np.all(X[0] == X):
+                return (X[0] == coords).astype(float)
+            kde = mp.mlab.GaussianKDE(X, bw_method)
+            return kde.evaluate(coords)
+        
+        selected_values = self.data.expr[self.indices, self.selGene]
+        excluded_values = self.data.expr[self.excluded_indices, self.selGene]
+        
+        selected_values_nonzero = [x for x in selected_values if x != 0]
+        excluded_values_nonzero = [x for x in excluded_values if x != 0]
+        
+        self.selected_stats = mp.cbook.violin_stats(selected_values, _kde_method)
+        self.excluded_stats = mp.cbook.violin_stats(excluded_values, _kde_method)
+        ## See https://matplotlib.org/stable/_modules/matplotlib/axes/_axes.html#Axes.violin for drawing the actual violins
+        
+        '''
+        x0 = self.width/2 + 200 + 50
+        w = self.width - x0 - 100
+        h = w
+        y0 = (self.height - h) / 2        
+        self.scatterShape = self.create_shape(self.GROUP)        
+        for i in range(0, len(self.indices)):
+            idx = self.indices[i]
+            cell = self.data.cells[idx]
+            x = self.remap(cell.proj, 0, 1, x0 + 5, x0 + w - 5)
+            y = self.remap(cell.expression[self.selGene], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
+            sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
+            sh.set_stroke(False)
+            sh.set_fill(self.color(150, 80))
+            self.scatterShape.add_child(sh)
+        '''
+            
+            
+            
+            
+            
+            
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -214,9 +278,8 @@ class py5renderer(Sketch):
             self.indices = []
             self.selector.normalize(self, x0, y0, w, h)        
         
-        for idx in range(0, len(self.data.cells)):
-            cell = self.data.cells[idx]
-            if self.requestSelection:            
+            for idx in range(0, len(self.data.cells)):
+                cell = self.data.cells[idx]
                 self.selector.apply(self, cell, x0, y0, w, h)
                 cell.project(self.selector)
                 if cell.selected:
@@ -287,14 +350,38 @@ class py5renderer(Sketch):
 
     def delClip(self):
         self.no_clip()        
-     
-class UMAPexplorer():
-    def __init__(self, umap, expr):
-        self.umap = umap
-        self.expr = expr
 
+    def showGeneViolin(self):
+        pass        
+
+class UMAPexplorer():
+    def __init__(self, umap, expr, gene_names=None, cell_names=None):
+        if type(umap) is pd.core.frame.DataFrame:
+            self.umap = umap.values.copy()
+        elif type(umap) is np.ndarray:
+            self.umap = umap.copy()
+        else:
+            sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
+        
+        if type(expr) is pd.core.frame.DataFrame:
+            self.expr = expr.values.copy()
+            self.geneNames = expr.columns.tolist()
+            self.cellNames = expr.index.tolist()
+        elif type(expr) is np.ndarray:
+            if gene_names is None:
+                self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
+            else: self.geneNames = gene_names
+            if cell_names is None:
+                self.cellNames = np.arange(expr.shape[0])
+            else: self.cellNames = cell_names
+            self.expr = expr.copy()
+        else:
+            sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
+
+        if self.umap.shape[0] != self.expr.shape[0]:
+            sys.exit('# of cells not equal between 2D embedding and expression matrix inputs')
+            
         self.cells = []
-        self.geneNames = expr.columns.tolist()
         self.sortedGenes = []
 
         self.selected_cells = []
@@ -303,22 +390,52 @@ class UMAPexplorer():
         self.selected_gene_cell_data = ''
 
         self.pearsonsThreshold = 0.1
+        self.tThreshold = 0.1
         self.pvalueThreshold = 0.05
         
-        min1 = umap["UMAP_1"].min()
-        max1 = umap["UMAP_1"].max()
-        min2 = umap["UMAP_2"].min()
-        max2 = umap["UMAP_2"].max()
+        min1 = self.umap[:,0].min()
+        max1 = self.umap[:,0].max()
+        min2 = self.umap[:,1].min()
+        max2 = self.umap[:,1].max()
 
         self.renderer = py5renderer(self)
         
         cells = []
-        for i in umap.index:
-            cell = Cell(i, umap.at[i,'UMAP_1'], umap.at[i,'UMAP_2'])
+        for i in range(self.umap.shape[0]):
+            cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
             cell.normalize(self.renderer, min1, max1, min2, max2)
-            cell.setAllExpressions(expr.loc[i].tolist())
-            cells += [cell]
+            cell.setAllExpressions(self.expr[i, :].tolist())
+            cells.append(cell)
         self.cells = cells
+        self.num_cells = len(cells)
+        self.gene_sum = self.expr.sum(axis=0)
+        self.gene_sqsum = (self.expr**2).sum(axis=0)
+
+    def calculateDiffExpr(self, indices):
+        print("Selected", len(indices), "cells")
+
+        print("Calculating differential expression...")
+        
+        selected_N = len(indices)
+        remainder_N = self.num_cells - selected_N
+        
+        selected_means = self.expr[indices,:].sum(axis=0)
+        remainder_means = (self.gene_sum - selected_means) / remainder_N
+        selected_means = selected_means / selected_N
+        
+        selected_stds = (self.expr[indices,:]**2).sum(axis=0)
+        remainder_stds = np.sqrt((self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1))
+        selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
+        
+        (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
+
+        for g in range (0, len(self.geneNames)):
+            if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
+                gene = Gene(self.geneNames[g], g, T[g], P[g])
+                self.sortedGenes += [gene]
+
+        self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
+        return(self.sortedGenes)
 
     def calculateGeneCorrelations(self, indices):
         print("Selected", len(indices), "cells")
@@ -326,23 +443,20 @@ class UMAPexplorer():
         print("Calculating correlations...") 
 
         self.sortedGenes = []
-
         vproj = []
-        rexpr = []
-        for i in range(0, len(indices)):
-            c = indices[i]
-            cell = self.cells[c]
-            vproj += [cell.proj]
-            rexpr += [cell.expression]
-        dexpr = pd.DataFrame.from_records(rexpr)
+        for i in indices:
+            vproj.append(self.cells[i].proj)
+            
+        dexpr = self.expr[indices, :]
+
         for g in range (0, len(self.geneNames)):
-            r, p = ss.pearsonr(vproj, dexpr[g])
+            r, p = ss.pearsonr(vproj, dexpr[:,g])
             if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
                 gene = Gene(self.geneNames[g], g, r, p)
-                self.sortedGenes += [gene]
-
+                self.sortedGenes.append(gene)
+        
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
-
+        '''
         self.renderer.scrollList.setList(self.sortedGenes)
 
         self.renderer.requestSelection = False
@@ -350,6 +464,8 @@ class UMAPexplorer():
         self.renderer.selGene = -1
         self.renderer.colorUMAPShape(RST_COLOR)
         print("Done")
+        '''
+        return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
         self.minGeneExp = sys.float_info.max
