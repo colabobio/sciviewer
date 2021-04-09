@@ -122,7 +122,6 @@ class ScrollBar:
         if y <= self.maxy:
             self.posY = y
             ty = float(self.totalHeight - self.listHeight) * (y / self.maxy)
-            print(y, self.totalHeight - ty, self.listHeight)
             self.translateY = -max(0, ty)
 
     def display(self, py5obj):        
