@@ -5,7 +5,7 @@ import scipy.stats as ss
 import sys
 import py5
 from py5 import Sketch
-from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector, angleBetween
+from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector, angleBetween
 
 SEL_COLOR = 1
 EXP_COLOR = 2
@@ -119,13 +119,13 @@ class py5renderer(Sketch):
     def mouse_pressed(self):
         if self.mouse_x < self.width/2:
             self.selector.press(self.mouse_x, self.mouse_y)
-        elif self.mouse_x < self.width/2 + GENE_WIDTH:
+        elif self.scrollList.contains(self.mouse_x, self.mouse_y):
             self.scrollList.press()
 
     def mouse_dragged(self):
         if self.mouse_x < self.width/2:
             self.selector.drag(self.mouse_x, self.mouse_y)
-        elif self.mouse_x < self.width/2 + GENE_WIDTH:
+        elif self.mouse_x < self.width/2 + 1.5 * GENE_WIDTH:
             self.scrollList.drag(self.mouse_y, self.pmouse_y)
 
     def mouse_moved(self):
@@ -135,18 +135,17 @@ class py5renderer(Sketch):
     def mouse_released(self):
         if self.mouse_x < self.width/2:
             self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
-        elif self.scrollList.contains(self.mouse_x, self.mouse_y):
-            sel = self.scrollList.release(self.mouse_y)
-            if sel != -1 and sel != self.selGene:
-                self.selGene = sel
-                self.selectedGene = True
-                print("Selected gene", self.data.geneNames[self.selGene])
-
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
             self.data.exportData(self.indices, self.selGene)
-
         elif self.modeBtn.contains(self.mouse_x, self.mouse_y):
             print("Selected mode", self.modeBtn.state)
+
+        sel = self.scrollList.release(self.mouse_x, self.mouse_y)
+        if sel != -1 and sel != self.selGene:
+            self.selGene = sel
+            self.selectedGene = True
+            print("Selected gene", self.data.geneNames[self.selGene])
+
         
     def initUI(self):
         self.selector = Selector()

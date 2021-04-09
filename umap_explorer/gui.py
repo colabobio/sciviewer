@@ -33,6 +33,7 @@ class ScrollableList:
         self.genes = []
         self.selItem = -1
         self.dragged = False
+        self.pressed = False
         self.visible = False
   
     def setList(self, genes):
@@ -74,20 +75,29 @@ class ScrollableList:
         py5obj.pop_matrix()
   
     def press(self):
-        self.dragged = False
+        self.pressed = True
+        self.dragged = True
 
     def drag(self, my, pmy):
-        self.dragged = True
-        # self.scrollbar.update(pmy - my)
-        self.scrollbar.update(my)
+        if self.pressed:
+            self.dragged = True
+            self.scrollbar.update(my)
 
     def contains(self, mx, my):
-        return self.x + 20 <= mx and mx <= self.x + 20 + 0.85 * self.w and self.y <= my and my <= self.y + self.h        
+         return self.x + 0.9 * self.w <= mx and mx <= self.x + self.w
 
-    def release(self, my):
-        if not self.dragged:
+    def release(self, mx, my):
+        insideItemArea = self.x + 20 <= mx and mx <= self.x + 0.85 * self.w and self.y <= my and my <= self.y + self.h
+        if not self.dragged and insideItemArea:
             l = my - self.scrollbar.translateY
-            self.selItem = int(l / itemHeight)
+            newItem = int(l / itemHeight)
+            if self.selItem == newItem:
+                self.selItem = -1 # deselect
+            else:
+                self.selItem = newItem
+
+        self.pressed = False
+        self.dragged = False
 
         if self.selItem != -1:
             return self.genes[self.selItem].idx  
@@ -103,26 +113,13 @@ class ScrollBar:
         self.posY = 0
         self.listHeight = lh
 
-    # def update(self, dy):
     def update(self, y):
         self.posY = y
         self.translateY = -y * float(self.totalHeight) / float(self.listHeight)
-        
-        
-        # py5obj.remap(y, 0, self.listHeight, 0, -self.totalHeight)
-
-# self.translateY / self.totalHeight
-
-#         py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
-
-#         if self.totalHeight + y > self.listHeight:
-#             self.translateY = -y
-#             if self.translateY > 0: self.translateY = 0
 
     def display(self, py5obj):
         frac = self.listHeight / self.totalHeight
         x = self.posX
-        # y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
         y = self.posY
         w = self.barWidth
         h = frac * self.listHeight
