@@ -126,7 +126,7 @@ class py5renderer(Sketch):
         if self.mouse_x < self.width/2:
             self.selector.drag(self.mouse_x, self.mouse_y)
         elif self.mouse_x < self.width/2 + 1.5 * GENE_WIDTH:
-            self.scrollList.drag(self.mouse_y, self.pmouse_y)
+            self.scrollList.drag(self.mouse_x, self.pmouse_y)
 
     def mouse_moved(self):
         if self.mouse_x < self.width/2:
@@ -146,7 +146,7 @@ class py5renderer(Sketch):
             self.selectedGene = True
             print("Selected gene", self.data.geneNames[self.selGene])
 
-        
+
     def initUI(self):
         self.selector = Selector()
         self.scrollList = ScrollableList(self.width/2, 0, GENE_WIDTH, self.height)
