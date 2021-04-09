@@ -9,8 +9,15 @@ This prototype of an RNA-seq Embedding Viewer allows exploring an UMAP embedding
 - Activate the environment created above:
   ```conda activate py5coding```
 - Install the umap_explorer package in this repo:
-  ```pip install .```
-
+  ```python setup.py install```
+- To uninstall:
+  ```pip uninstall umap-explorer```
+- To load the module from a notebook wihtout installing (good for debugging), add the following imports to the notebook:
+  ```
+  import sys
+  sys.path.append('../umap_explorer')
+  from umap_explorer import UMAPexplorer
+  ```
 
 ## Jupyter notebook
 
