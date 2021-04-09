@@ -33,14 +33,18 @@ class ScrollableList:
         self.genes = []
         self.selItem = -1
         self.dragged = False
+        self.pressed = False
+        self.visible = False
   
     def setList(self, genes):
         self.genes = genes
-        self.scrollbar = ScrollBar(50 * len(genes), 0.1 * self.w, self.w, self.h)
+        toth = itemHeight * (len(genes) + 3)
+        self.visible = self.h < toth 
+        self.scrollbar = ScrollBar(toth, 0.9 * self.w, 0.1 * self.w, self.h)
         self.selItem = -1
   
     def display(self, py5obj):
-        if not self.genes or len(self.genes) == 0: return
+        if not self.genes or len(self.genes) == 0 or not self.visible: return
     
         py5obj.push_matrix()
         py5obj.translate(self.x, self.y)
@@ -51,7 +55,7 @@ class ScrollableList:
             py5obj.fill(210)
             rx = 20
             ry = i * itemHeight + itemSpace
-            rw = self.w - 40
+            rw = 0.85 * self.w - 20
             rh = itemHeight - itemSpace
             if self.selItem == i:
                 py5obj.stroke(240, 118, 104)
@@ -62,23 +66,41 @@ class ScrollableList:
             gene = self.genes[i]
             text = gene.name + " " + "{:1.2f}".format(gene.r)
             py5obj.text(text, rx, ry, rw, rh)
+
         py5obj.pop_matrix()
+        py5obj.fill(220)
+        py5obj.rect(0.9 * self.w, 0, 0.1 * self.w, self.h)
         self.scrollbar.display(py5obj)
+        py5obj.no_stroke()        
         py5obj.pop_matrix()
   
     def press(self):
-        self.dragged = False
-        self.scrollbar.setOpen()
+        self.pressed = True
 
-    def drag(self, my, pmy):
-        self.dragged = True
-        self.scrollbar.update(pmy - my)
+    def drag(self, mx, my):
+        if self.pressed:            
+            self.dragged = True
+            if self.y <= my and my <= self.y + self.h:
+                self.scrollbar.update(my)
 
-    def release(self, my):
-        self.scrollbar.setClose()
-        if not self.dragged:
+    def contains(self, mx, my):
+         return self.x + 0.9 * self.w <= mx and mx <= self.x + self.w
+
+    def release(self, mx, my):
+        insideItemArea = self.x + 20 <= mx and mx <= self.x + 0.85 * self.w and self.y <= my and my <= self.y + self.h
+        insideDragArea = self.x + 0.9 * self.w <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+        if not self.dragged and insideItemArea:
             l = my - self.scrollbar.translateY
-            self.selItem = int(l / itemHeight)
+            newItem = int(l / itemHeight)
+            if self.selItem == newItem:
+                self.selItem = -1 # deselect
+            else:
+                self.selItem = newItem
+        elif self.pressed and insideDragArea:
+            self.scrollbar.update(my)
+
+        self.pressed = False
+        self.dragged = False
 
         if self.selItem != -1:
             return self.genes[self.selItem].idx  
@@ -86,37 +108,32 @@ class ScrollableList:
             return -1
 
 class ScrollBar:    
-    def __init__(self, th, bw, lw, lh):
+    def __init__(self, th, x0, bw, lh):
         self.totalHeight = th
         self.barWidth = bw
         self.translateY = 0
-        self.opacity = 0    
-        self.listWidth = lw
+        self.posX = x0
+        self.posY = 0
         self.listHeight = lh
+        self.frac = self.listHeight / self.totalHeight
+        self.maxy = (1 - self.frac) * self.listHeight
 
-    def setOpen(self):
-        self.opacity = 150
+    def update(self, y):
+        if y <= self.maxy:
+            self.posY = y
+            ty = float(self.totalHeight - self.listHeight) * (y / self.maxy)
+            self.translateY = -max(0, ty)
 
-    def setClose(self):
-        self.opacity = 0
-
-    def update(self, dy):
-        if self.totalHeight + self.translateY + dy > self.listHeight:
-            self.translateY += dy
-            if self.translateY > 0: self.translateY = 0
-
-    def display(self, py5obj):
-        if 0 < self.opacity:
-            frac = self.listHeight / self.totalHeight
-            x = self.listWidth - 1.5 * self.barWidth
-            y = py5obj.remap(self.translateY / self.totalHeight, -1, 0, self.listHeight, 0)
-            w = self.barWidth
-            h = frac * self.listHeight
-            py5obj.push_style()
-            py5obj.no_stroke()
-            py5obj.fill(150, self.opacity)
-            py5obj.rect(x, y, w, h, 0.2 * w)
-            py5obj.pop_style()
+    def display(self, py5obj):        
+        x = self.posX
+        y = self.posY
+        w = self.barWidth
+        h = self.frac * self.listHeight
+        py5obj.push_style()
+        py5obj.no_stroke()
+        py5obj.fill(150)
+        py5obj.rect(x, y, w, h, w)
+        py5obj.pop_style()
             
             
 class Button:
@@ -138,6 +155,46 @@ class Button:
     def contains(self, mx, my):
         return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
 
+
+class ToggleButton:
+    def __init__(self, x, y, w, h, l1, l2):
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
+        self.label1 = l1
+        self.label2 = l2
+        self.state = 1
+  
+    def display(self, py5obj):
+        py5obj.no_stroke()
+
+        if self.state == 1:
+            py5obj.fill(120)
+        else:
+            py5obj.fill(180)
+        py5obj.rect(self.x, self.y, self.w/2, self.h, 15, 0, 0, 15)
+    
+        py5obj.fill(255)
+        py5obj.text(self.label1, self.x, self.y, self.w/2, self.h)
+  
+        if self.state == 1:
+            py5obj.fill(180)
+        else:
+            py5obj.fill(120)
+        py5obj.rect(self.x + self.w/2, self.y, self.w/2, self.h, 0, 15, 15, 0)
+    
+        py5obj.fill(255)
+        py5obj.text(self.label2, self.x + self.w/2, self.y, self.w/2, self.h)
+
+    def contains(self, mx, my):
+        inside = self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+        if inside:
+            if self.x <= mx and mx <= self.x + self.w/2:
+                self.state = 1
+            else:
+                self.state = 2
+        return inside
 
 class Selector():
     def __init__(self):
