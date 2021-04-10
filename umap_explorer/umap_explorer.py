@@ -81,8 +81,7 @@ class py5renderer(Sketch):
         self.umapShape = None
         self.scatterShape = None
         self.exportBtn = None
-        self.modeBtn = None        
-        self.mode = 'DiffExp' ## DiffExp or Projection
+        self.modeBtn = None
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -98,9 +97,9 @@ class py5renderer(Sketch):
 
         if self.selectedGene:        
             self.data.calculateGeneMinMax(self.indices, self.selGene)
-            if self.mode == 'Projection':
+            if self.modeBtn.state == 1:
                 self.initScatterShape()
-            elif self.mode == 'DiffExp':
+            else:
                 self.initViolinShape()
             self.colorUMAPShape(EXP_COLOR)            
             self.selectedGene = False
@@ -108,16 +107,16 @@ class py5renderer(Sketch):
         self.showUMAPScatter()
 
         if self.requestSelection and 1 < len(self.indices):
-            if self.mode == 'DiffExp':
+            if self.modeBtn.state == 1:
+                # Calculate correlation of expression with projection onto axis in UMAP space
+                sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+            else:
                 # Obtain set of unselected cells
                 setindices = set(self.indices)
                 self.excluded_indices = [i for i in range(self.data.num_cells) if i not in setindices]
                 
                 # Calculate differential expression
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
-            elif self.mode == 'Projection':
-                # Calculate correlation of expression with projection onto axis in UMAP space
-                sortedGenes = self.data.calculateGeneCorrelations(self.indices)
                 
             self.scrollList.setList(sortedGenes)
             self.requestSelection = False
@@ -131,9 +130,9 @@ class py5renderer(Sketch):
         self.scrollList.display(self)
 
         if self.selGene != -1:
-            if self.mode == 'Projection':
+            if self.modeBtn.state == 1:
                 self.showGeneScatter()
-            elif self.mode == 'DiffExp':
+            else:
                 # Need to make violin plot visual
                 self.showGeneViolin()
 
