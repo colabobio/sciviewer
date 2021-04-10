@@ -14,6 +14,7 @@ RST_COLOR = 3
 
 GENE_WIDTH = 200
 MARGIN = 50
+PADDING = 50
 
 class Gene():
     def __init__(self, n, i, r, p):
@@ -183,10 +184,10 @@ class py5renderer(Sketch):
         self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
     def initUMAPShape(self):
-        x0 = 25
-        y0 = 25
-        w = self.width/2 - MARGIN
-        h = self.height - MARGIN
+        x0 = MARGIN/2 + PADDING
+        y0 = MARGIN/2 + PADDING
+        w = self.width/2 - MARGIN - 2 * PADDING
+        h = self.height - MARGIN - 2 * PADDING
 
         self.umapShape = self.create_shape(self.GROUP)
         for cell in self.data.cells:
@@ -268,11 +269,11 @@ class py5renderer(Sketch):
                 sh.set_fill(cell.getExprColor(self, self.data.minGeneExp, self.data.maxGeneExp, self.selGene))
 
     def showUMAPScatter(self):
-        x0 = 25
-        y0 = 25
-        w = self.width/2 - MARGIN
-        h = self.height - MARGIN
-       
+        x0 = MARGIN/2 + PADDING
+        y0 = MARGIN/2 + PADDING
+        w = self.width/2 - MARGIN - 2 * PADDING
+        h = self.height - MARGIN - 2 * PADDING
+      
         if self.requestSelection:
             self.indices = []
             self.selector.normalize(self, x0, y0, w, h)        
@@ -289,7 +290,7 @@ class py5renderer(Sketch):
         self.stroke_weight(2)
         self.stroke(120)
         self.no_fill()
-        self.rect(x0 - 2.5, y0 - 2.5, w + 5, h + 5)
+        self.rect(x0 - PADDING, y0 - PADDING, w + 2 * PADDING, h + 2 * PADDING)
 
         if self.selGene != -1:
             self.no_stroke()
