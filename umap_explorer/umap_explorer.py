@@ -421,6 +421,7 @@ class UMAPexplorer():
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
 
+        self.sortedGenes = []
         for g in range (0, len(self.geneNames)):
             if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
                 gene = Gene(self.geneNames[g], g, T[g], P[g])
