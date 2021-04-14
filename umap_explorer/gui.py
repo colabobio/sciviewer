@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as la
-from umap_explorer import angleBetween
+from utils import angleBetween
+
 CLOSED = 0
 SET_SPINE = 1
 SET_WIDTH = 2
