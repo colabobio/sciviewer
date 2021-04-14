@@ -367,7 +367,7 @@ class UMAPexplorer():
 
         start = time.time()    
         if type(expr) is pd.core.frame.DataFrame:
-            self.expr = expr.values.copy()
+            self.expr = expr.values
             self.geneNames = expr.columns.tolist()
             self.cellNames = expr.index.tolist()
         elif type(expr) is np.ndarray:
@@ -377,7 +377,7 @@ class UMAPexplorer():
             if cell_names is None:
                 self.cellNames = np.arange(expr.shape[0])
             else: self.cellNames = cell_names
-            self.expr = expr.copy()
+            self.expr = expr
         else:
             sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
         end = time.time()
