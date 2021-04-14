@@ -252,9 +252,7 @@ class py5renderer(Sketch):
         elif mode == EXP_COLOR:
             color_grad = self.data.expr[:, self.selGene]
             minGeneExp = self.data.minGeneExp
-            maxGeneExp = self.data.maxGeneExp
-            #color_grad[color_grad<minGeneExp] = minGeneExp
-            #color_grad[color_grad>maxGeneExp] = maxGeneExp            
+            maxGeneExp = self.data.maxGeneExp           
             color_grad -= minGeneExp
             color_grad /= (maxGeneExp-minGeneExp)
             self.color_mode(self.HSB, 360, 100, 100)
@@ -273,17 +271,19 @@ class py5renderer(Sketch):
        
         if self.requestSelection:
             self.indices = []
-            self.selector.normalize(self, x0, y0, w, h)        
-        
+            self.selector.normalize(self, x0, y0, w, h)    
             for idx in range(0, len(self.data.cells)):
                 cell = self.data.cells[idx]
                 self.selector.apply(self, cell, x0, y0, w, h)
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
+                    
+            if len(self.indices) == 0:
+                print('No cells selected, please make another selection')
+                self.requestSelection = False
         
         self.shape(self.umapShape)
-
         self.stroke_weight(2)
         self.stroke(120)
         self.no_fill()
@@ -357,9 +357,9 @@ class UMAPexplorer():
         print("Timing initialization steps")
         start = time.time()    
         if type(umap) is pd.core.frame.DataFrame:
-            self.umap = umap.values.copy()
+            self.umap = umap.values
         elif type(umap) is np.ndarray:
-            self.umap = umap.copy()
+            self.umap = umap
         else:
             sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
         end = time.time()

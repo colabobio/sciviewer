@@ -235,8 +235,8 @@ class Selector():
         tx = self.multX(sx, sy)
         ty = self.multY(sx, sy)
         
-        cell.selected = 0 <= tx and tx <= self.w and -self.h/2 <= ty and ty <= self.h/2
-
+        cell.selected = 0 <= tx and tx <= self.w and -self.h/2 <= ty and ty <= self.h/2        
+        
     def updateBox(self, x, y):
         self.wx = x
         self.wy = y
