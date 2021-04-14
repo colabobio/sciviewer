@@ -9,6 +9,8 @@ from py5 import Sketch
 from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
 from utils import angleBetween
 
+import time
+
 SEL_COLOR = 1
 EXP_COLOR = 2
 RST_COLOR = 3
@@ -93,12 +95,13 @@ class py5renderer(Sketch):
 
         if self.requestSelection and 1 < len(self.indices):
             if self.modeBtn.state == 1:
-                # Calculate correlation of expression with projection onto axis in UMAP space
+                # Correlation of expression with projection onto UMAP axis
                 sortedGenes = self.data.calculateGeneCorrelations(self.indices)
             else:
                 # Obtain set of unselected cells
                 setindices = set(self.indices)
-                self.excluded_indices = [i for i in range(self.data.num_cells) if i not in setindices]
+                num_cells = self.data.num_cells
+                self.excluded_indices = [i for i in range(num_cells) if i not in setindices]
                 
                 # Calculate differential expression
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
@@ -153,7 +156,6 @@ class py5renderer(Sketch):
             self.selGene = sel
             self.selectedGene = True
             print("Selected gene", self.data.geneNames[self.selGene])
-
 
     def initUI(self):
         self.selector = Selector()
@@ -350,14 +352,20 @@ class py5renderer(Sketch):
         pass        
 
 class UMAPexplorer():
+    
     def __init__(self, umap, expr, gene_names=None, cell_names=None):
+        print("Timing initialization steps")
+        start = time.time()    
         if type(umap) is pd.core.frame.DataFrame:
             self.umap = umap.values.copy()
         elif type(umap) is np.ndarray:
             self.umap = umap.copy()
         else:
             sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
-        
+        end = time.time()
+        print(end - start,'seconds to copy UMAP')
+
+        start = time.time()    
         if type(expr) is pd.core.frame.DataFrame:
             self.expr = expr.values.copy()
             self.geneNames = expr.columns.tolist()
@@ -372,6 +380,8 @@ class UMAPexplorer():
             self.expr = expr.copy()
         else:
             sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
+        end = time.time()
+        print(end - start,'seconds to copy expression')
 
         if self.umap.shape[0] != self.expr.shape[0]:
             sys.exit('# of cells not equal between 2D embedding and expression matrix inputs')
@@ -381,6 +391,7 @@ class UMAPexplorer():
 
         self.selected_cells = []
         self.significant_genes = []
+        self.sortedGenes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = ''
 
@@ -395,16 +406,25 @@ class UMAPexplorer():
 
         self.renderer = py5renderer(self)
         
+        start = time.time()
         cells = []
         for i in range(self.umap.shape[0]):
             cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
             cell.normalize(self.renderer, min1, max1, min2, max2)
             cells.append(cell)
+        end = time.time()
+        print(end - start,'seconds to initialize cells')
         self.cells = cells
         self.num_cells = len(cells)
+        start = time.time()
         self.gene_sum = self.expr.sum(axis=0)
+        end = time.time()        
+        print(end - start,'seconds to calculate gene sums')
+        start = time.time()
         self.gene_sqsum = (self.expr**2).sum(axis=0)
-
+        end = time.time()        
+        print(end - start,'seconds to calculate gene squared sums')
+        
     def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
 
@@ -478,14 +498,14 @@ class UMAPexplorer():
             row = [cell.code, cell.proj]
             rows += [row]
         self.selected_cells = pd.DataFrame.from_records(rows, columns=['index', 'proj'])
-
+        
         rows = []
         gene_names = []
         for gene in self.sortedGenes:
             row = [gene.r, gene.p]
             rows += [row]
             gene_names.append(gene.name)
-        self.significant_genes = pd.DataFrame.from_records(rows, columns=['R', 'P'], index=gene_names)
+        self.significant_genes = pd.DataFrame(rows, columns=['R', 'P'], index=gene_names)
 
         self.selected_gene_name = self.geneNames[selGene]
 
