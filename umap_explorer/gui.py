@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.linalg as la
-
+from umap_explorer import angleBetween
 CLOSED = 0
 SET_SPINE = 1
 SET_WIDTH = 2
@@ -8,20 +8,6 @@ COMPLETED = 3
 
 itemHeight = 50
 itemSpace = 10
-
-def angleBetween(v1, v2):
-    # Angle calculation A
-#     amt = np.dot(v1, v2) / (la.norm(v1) * la.norm(v2))
-#     if amt <= -1:
-#         return -py5.PI
-#     elif amt >= 1:
-#         return 0
-#     return np.arccos(amt)
-    # Angle calculation B
-    cosang = np.dot(v1, v2)
-    sinang = la.norm(np.cross(v1, v2))
-    return np.arctan2(sinang, cosang)
-
 
 class ScrollableList:    
     def __init__(self, x, y, w, h):
