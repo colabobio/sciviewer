@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib as mp
 import numpy.linalg as la
 import scipy.stats as ss
+import scipy.sparse as sp
 import sys
 import py5
 from py5 import Sketch
@@ -96,16 +97,22 @@ class py5renderer(Sketch):
         if self.requestSelection and 1 < len(self.indices):
             if self.modeBtn.state == 1:
                 # Correlation of expression with projection onto UMAP axis
+                start = time.time()
                 sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+                end = time.time()
+                print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
             else:
-                # Obtain set of unselected cells
+                # Obtain set of unselected cells for violin plots
                 setindices = set(self.indices)
                 num_cells = self.data.num_cells
                 self.excluded_indices = [i for i in range(num_cells) if i not in setindices]
                 
                 # Calculate differential expression
+                start = time.time()
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
-                
+                end = time.time()
+                print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
+
             self.scrollList.setList(sortedGenes)
             self.requestSelection = False
             self.selGene = -1
@@ -271,13 +278,16 @@ class py5renderer(Sketch):
        
         if self.requestSelection:
             self.indices = []
-            self.selector.normalize(self, x0, y0, w, h)    
+            self.selector.normalize(self, x0, y0, w, h)
+            start = time.time()
             for idx in range(0, len(self.data.cells)):
                 cell = self.data.cells[idx]
                 self.selector.apply(self, cell, x0, y0, w, h)
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
+            end = time.time()
+            print(end - start,'seconds to select and project cells')
                     
             if len(self.indices) == 0:
                 print('No cells selected, please make another selection')
@@ -353,39 +363,34 @@ class py5renderer(Sketch):
 
 class UMAPexplorer():
     
-    def __init__(self, umap, expr, gene_names=None, cell_names=None):
-        print("Timing initialization steps")
-        start = time.time()    
-        if type(umap) is pd.core.frame.DataFrame:
-            self.umap = umap.values
-        elif type(umap) is np.ndarray:
-            self.umap = umap
-        else:
-            sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
-        end = time.time()
-        print(end - start,'seconds to copy UMAP')
+    def __init__(self, umap, expr, gene_names=None, cell_names=None):    
+        if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
+        elif type(umap) is np.ndarray: self.umap = umap
+        else: sys.exit('umap must be a Pandas DataFrame or Numpy ndarray')
 
-        start = time.time()    
         if type(expr) is pd.core.frame.DataFrame:
             self.expr = expr.values
             self.geneNames = expr.columns.tolist()
             self.cellNames = expr.index.tolist()
-        elif type(expr) is np.ndarray:
-            if gene_names is None:
-                self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
-            else: self.geneNames = gene_names
-            if cell_names is None:
-                self.cellNames = np.arange(expr.shape[0])
-            else: self.cellNames = cell_names
+        elif type(expr) in [np.ndarray, sp.csc.csc_matrix]:
             self.expr = expr
+                        
+            if gene_names is None: self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
+            else: self.geneNames = gene_names
+
+            if cell_names is None: self.cellNames = np.arange(expr.shape[0])
+            else: self.cellNames = cell_names
+            
         else:
-            sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
+            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, or sp.csc_matrix')
         end = time.time()
-        print(end - start,'seconds to copy expression')
 
         if self.umap.shape[0] != self.expr.shape[0]:
             sys.exit('# of cells not equal between 2D embedding and expression matrix inputs')
-            
+        
+        if type(expr) is sp.csc.csc_matrix: self.sparse = True
+        else: self.sparse = False
+
         self.cells = []
         self.sortedGenes = []
 
@@ -394,9 +399,12 @@ class UMAPexplorer():
         self.sortedGenes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = ''
+        
+        self.gene_sum = None
+        self.gene_sqsum = None
 
         self.pearsonsThreshold = 0.1
-        self.tThreshold = 0.1
+        self.tThreshold = 2.0
         self.pvalueThreshold = 0.05
         
         min1 = self.umap[:,0].min()
@@ -412,32 +420,46 @@ class UMAPexplorer():
             cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
             cell.normalize(self.renderer, min1, max1, min2, max2)
             cells.append(cell)
-        end = time.time()
-        print(end - start,'seconds to initialize cells')
         self.cells = cells
         self.num_cells = len(cells)
-        start = time.time()
-        self.gene_sum = self.expr.sum(axis=0)
-        end = time.time()        
-        print(end - start,'seconds to calculate gene sums')
-        start = time.time()
-        self.gene_sqsum = (self.expr**2).sum(axis=0)
-        end = time.time()        
-        print(end - start,'seconds to calculate gene squared sums')
         
     def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
 
         print("Calculating differential expression...")
+                
+        # Calculate gene sums / sq-sums if not already calculated
+        if self.gene_sum is None:
+            start = time.time()
+            self.gene_sum = self.expr.sum(axis=0)
+            end = time.time()
+            print(end - start,'seconds to calculate genesums. Sparsity: ', self.sparse)
+            start = time.time()
+            if self.sparse:
+                self.gene_sum = np.array(self.gene_sum).reshape(-1)
+                self.expr2 = self.expr.copy()
+                self.expr2.data **= 2
+                self.gene_sqsum = np.array(self.expr2.sum(axis=0)).reshape(-1)
+            else:
+                self.gene_sqsum = (self.expr**2).sum(axis=0)
+            end = time.time()
+            print(end - start,'seconds to calculate squared genesums. Sparsity: ', self.sparse)
         
         selected_N = len(indices)
         remainder_N = self.num_cells - selected_N
         
         selected_means = self.expr[indices,:].sum(axis=0)
+        if self.sparse:
+            selected_means = np.array(selected_means).reshape(-1)
+        
         remainder_means = (self.gene_sum - selected_means) / remainder_N
         selected_means = selected_means / selected_N
         
-        selected_stds = (self.expr[indices,:]**2).sum(axis=0)
+        if self.sparse:
+            selected_stds = np.array(self.expr2[indices,:].sum(axis=0)).reshape(-1)
+        else:
+            selected_stds = (self.expr[indices,:]**2).sum(axis=0)
+            
         remainder_stds = np.sqrt((self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1))
         selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
         
@@ -463,23 +485,25 @@ class UMAPexplorer():
             vproj.append(self.cells[i].proj)
             
         dexpr = self.expr[indices, :]
-
-        for g in range (0, len(self.geneNames)):
-            r, p = ss.pearsonr(vproj, dexpr[:,g])
-            if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
-                gene = Gene(self.geneNames[g], g, r, p)
+        vproj = np.array(vproj)
+        n = vproj.size
+        if self.sparse:
+            yy = vproj - vproj.mean()
+            xm = dexpr.mean(axis=0).A.ravel()
+            ys = yy / np.sqrt(np.dot(yy, yy))
+            xs = np.sqrt(np.add.reduceat(dexpr.data**2, dexpr.indptr[:-1]) - n*xm*xm)
+            rs = np.add.reduceat(dexpr.data * ys[dexpr.indices], dexpr.indptr[:-1]) / xs
+        else:
+            DO = dexpr - (np.sum(dexpr, 0) / np.double(n))
+            DP = vproj - (np.sum(vproj) / np.double(n))        
+            rs = np.dot(DP, DO) / np.sqrt(np.sum(DO ** 2, 0) * np.sum(DP ** 2))
+        
+        for (i,g) in enumerate(self.geneNames):
+            if self.pearsonsThreshold <= abs(rs[i]):
+                gene = Gene(g, i, rs[i], np.nan)
                 self.sortedGenes.append(gene)
         
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
-        '''
-        self.renderer.scrollList.setList(self.sortedGenes)
-
-        self.renderer.requestSelection = False
-
-        self.renderer.selGene = -1
-        self.renderer.colorUMAPShape(RST_COLOR)
-        print("Done")
-        '''
         return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
