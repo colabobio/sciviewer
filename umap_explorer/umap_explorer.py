@@ -505,7 +505,7 @@ class UMAPexplorer():
         ps = ss.t.cdf(T, df=n-2)*2
         
         for (i,g) in enumerate(self.geneNames):
-            if self.pearsonsThreshold <= abs(rs[i]):
+            if (self.pearsonsThreshold <= abs(rs[i])) and (ps[i] <= self.pvalueThreshold):
                 gene = Gene(g, i, rs[i], ps[i])
                 self.sortedGenes.append(gene)
         
