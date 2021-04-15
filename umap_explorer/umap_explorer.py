@@ -488,19 +488,25 @@ class UMAPexplorer():
         vproj = np.array(vproj)
         n = vproj.size
         if self.sparse:
+            # based on https://www.javaer101.com/en/article/18344934.html
             yy = vproj - vproj.mean()
             xm = dexpr.mean(axis=0).A.ravel()
             ys = yy / np.sqrt(np.dot(yy, yy))
             xs = np.sqrt(np.add.reduceat(dexpr.data**2, dexpr.indptr[:-1]) - n*xm*xm)
             rs = np.add.reduceat(dexpr.data * ys[dexpr.indices], dexpr.indptr[:-1]) / xs
         else:
+            # based on https://github.com/ikizhvatov/efficient-columnwise-correlation/blob/master/columnwise_corrcoef_perf.py
             DO = dexpr - (np.sum(dexpr, 0) / np.double(n))
             DP = vproj - (np.sum(vproj) / np.double(n))        
             rs = np.dot(DP, DO) / np.sqrt(np.sum(DO ** 2, 0) * np.sum(DP ** 2))
         
+        # calculate P-value
+        T = -1*np.abs(rs * np.sqrt(n-2))/np.sqrt(1 - (rs**2))
+        ps = ss.t.cdf(T, df=n-2)*2
+        
         for (i,g) in enumerate(self.geneNames):
             if self.pearsonsThreshold <= abs(rs[i]):
-                gene = Gene(g, i, rs[i], np.nan)
+                gene = Gene(g, i, rs[i], ps[i])
                 self.sortedGenes.append(gene)
         
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
