@@ -3,10 +3,14 @@ import numpy as np
 import matplotlib as mp
 import numpy.linalg as la
 import scipy.stats as ss
+import scipy.sparse as sp
 import sys
 import py5
 from py5 import Sketch
-from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector, angleBetween
+from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
+from utils import angleBetween
+
+import time
 
 SEL_COLOR = 1
 EXP_COLOR = 2
@@ -15,6 +19,7 @@ RST_COLOR = 3
 GENE_WIDTH = 200
 MARGIN = 50
 PADDING = 50
+
 
 class Gene():
     def __init__(self, n, i, r, p):
@@ -37,15 +42,6 @@ class Cell:
     def normalize(self, p5obj, min1, max1, min2, max2):
         self.umap1 = p5obj.remap(self.umap1, min1, max1, 0, 1)
         self.umap2 = p5obj.remap(self.umap2, min2, max2, 1, 0)
-  
-    def initExpression(self, numGenes):
-        self.expression = [0.0] * numGenes
-
-    def setExpression(self, i, level):
-        self.expression[i] = level
-
-    def setAllExpressions(self, levels):
-        self.expression = levels
         
     def project(self, sel):
         if self.selected:
@@ -53,14 +49,6 @@ class Cell:
             celv = np.array([self.umap1 - sel.nx0, self.umap2 - sel.ny0])
             a = angleBetween(dirv, celv)        
             self.proj = np.cos(a) * la.norm(celv) / la.norm(dirv)
-
-    def getExprColor(self, p5obj, minGeneExp, maxGeneExp, selGene):
-        p5obj.color_mode(p5obj.HSB, 360, 100, 100)
-        f = p5obj.constrain(p5obj.remap(self.expression[selGene], 
-                                        minGeneExp, maxGeneExp, 0, 1), 0, 1)
-        cl = p5obj.color((1 - f) * 170 + f * 233, 74, 93, 80)
-        p5obj.color_mode(p5obj.RGB, 255, 255, 255)
-        return cl
 
     def createShape(self, p5obj, x0, y0, w, h):
         x = p5obj.remap(self.umap1, 0, 1, x0, x0 + w)
@@ -109,16 +97,23 @@ class py5renderer(Sketch):
 
         if self.requestSelection and 1 < len(self.indices):
             if self.modeBtn.state == 1:
-                # Calculate correlation of expression with projection onto axis in UMAP space
+                # Correlation of expression with projection onto UMAP axis
+                start = time.time()
                 sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+                end = time.time()
+                print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
             else:
-                # Obtain set of unselected cells
+                # Obtain set of unselected cells for violin plots
                 setindices = set(self.indices)
-                self.excluded_indices = [i for i in range(self.data.num_cells) if i not in setindices]
+                num_cells = self.data.num_cells
+                self.excluded_indices = [i for i in range(num_cells) if i not in setindices]
                 
                 # Calculate differential expression
+                start = time.time()
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
-                
+                end = time.time()
+                print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
+
             self.scrollList.setList(sortedGenes)
             self.requestSelection = False
             self.selGene = -1
@@ -170,7 +165,6 @@ class py5renderer(Sketch):
             self.selectedGene = True
             print("Selected gene", self.data.geneNames[self.selGene])
 
-
     def initUI(self):
         self.selector = Selector()
         self.scrollList = ScrollableList(self.width/2, 0, GENE_WIDTH, self.height)
@@ -199,12 +193,13 @@ class py5renderer(Sketch):
         w = self.width - x0 - MARGIN
         h = w
         y0 = (self.height - h) / 2        
-        self.scatterShape = self.create_shape(self.GROUP)        
+        self.scatterShape = self.create_shape(self.GROUP)
+        expr = self.data.expr[self.indices, self.selGene]
         for i in range(0, len(self.indices)):
             idx = self.indices[i]
             cell = self.data.cells[idx]
             x = self.remap(cell.proj, 0, 1, x0 + 5, x0 + w - 5)
-            y = self.remap(cell.expression[self.selGene], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
+            y = self.remap(expr[i], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
             sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
             sh.set_stroke(False)
             sh.set_fill(self.color(150, 80))
@@ -263,10 +258,18 @@ class py5renderer(Sketch):
                     cl = self.color(150, 80)            
                 sh.set_fill(cl)
         elif mode == EXP_COLOR:
-            for idx in range(0, len(self.data.cells)):
-                cell = self.data.cells[idx]
-                sh = self.umapShape.get_child(idx)            
-                sh.set_fill(cell.getExprColor(self, self.data.minGeneExp, self.data.maxGeneExp, self.selGene))
+            color_grad = self.data.expr[:, self.selGene]
+            minGeneExp = self.data.minGeneExp
+            maxGeneExp = self.data.maxGeneExp           
+            color_grad -= minGeneExp
+            color_grad /= (maxGeneExp-minGeneExp)
+            self.color_mode(self.HSB, 360, 100, 100)
+            print(color_grad.min(), color_grad.max())
+            for idx in range(self.data.num_cells):
+                sh = self.umapShape.get_child(idx)
+                cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
+                sh.set_fill(cl)            
+            self.color_mode(self.RGB, 255, 255, 255)
 
     def showUMAPScatter(self):
         x0 = MARGIN/2 + PADDING
@@ -276,17 +279,22 @@ class py5renderer(Sketch):
       
         if self.requestSelection:
             self.indices = []
-            self.selector.normalize(self, x0, y0, w, h)        
-        
+            self.selector.normalize(self, x0, y0, w, h)
+            start = time.time()
             for idx in range(0, len(self.data.cells)):
                 cell = self.data.cells[idx]
                 self.selector.apply(self, cell, x0, y0, w, h)
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
+            end = time.time()
+            print(end - start,'seconds to select and project cells')
+                    
+            if len(self.indices) == 0:
+                print('No cells selected, please make another selection')
+                self.requestSelection = False
         
         self.shape(self.umapShape)
-
         self.stroke_weight(2)
         self.stroke(120)
         self.no_fill()
@@ -355,42 +363,49 @@ class py5renderer(Sketch):
         pass        
 
 class UMAPexplorer():
-    def __init__(self, umap, expr, gene_names=None, cell_names=None):
-        if type(umap) is pd.core.frame.DataFrame:
-            self.umap = umap.values.copy()
-        elif type(umap) is np.ndarray:
-            self.umap = umap.copy()
-        else:
-            sys.exit('2D embedding argument - umap - must be a Pandas DataFrame or Numpy ndarray')
-        
+    
+    def __init__(self, umap, expr, gene_names=None, cell_names=None):    
+        if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
+        elif type(umap) is np.ndarray: self.umap = umap
+        else: sys.exit('umap must be a Pandas DataFrame or Numpy ndarray')
+
         if type(expr) is pd.core.frame.DataFrame:
-            self.expr = expr.values.copy()
+            self.expr = expr.values
             self.geneNames = expr.columns.tolist()
             self.cellNames = expr.index.tolist()
-        elif type(expr) is np.ndarray:
-            if gene_names is None:
-                self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
+        elif type(expr) in [np.ndarray, sp.csc.csc_matrix]:
+            self.expr = expr
+                        
+            if gene_names is None: self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
             else: self.geneNames = gene_names
-            if cell_names is None:
-                self.cellNames = np.arange(expr.shape[0])
+
+            if cell_names is None: self.cellNames = np.arange(expr.shape[0])
             else: self.cellNames = cell_names
-            self.expr = expr.copy()
+            
         else:
-            sys.exit('Expression argument - expr - must be pandas DataFrame or numpy ndarray')
+            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, or sp.csc_matrix')
+        end = time.time()
 
         if self.umap.shape[0] != self.expr.shape[0]:
             sys.exit('# of cells not equal between 2D embedding and expression matrix inputs')
-            
+        
+        if type(expr) is sp.csc.csc_matrix: self.sparse = True
+        else: self.sparse = False
+
         self.cells = []
         self.sortedGenes = []
 
         self.selected_cells = []
         self.significant_genes = []
+        self.sortedGenes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = ''
+        
+        self.gene_sum = None
+        self.gene_sqsum = None
 
         self.pearsonsThreshold = 0.1
-        self.tThreshold = 0.1
+        self.tThreshold = 2.0
         self.pvalueThreshold = 0.05
         
         min1 = self.umap[:,0].min()
@@ -400,35 +415,58 @@ class UMAPexplorer():
 
         self.renderer = py5renderer(self)
         
+        start = time.time()
         cells = []
         for i in range(self.umap.shape[0]):
             cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
             cell.normalize(self.renderer, min1, max1, min2, max2)
-            cell.setAllExpressions(self.expr[i, :].tolist())
             cells.append(cell)
         self.cells = cells
         self.num_cells = len(cells)
-        self.gene_sum = self.expr.sum(axis=0)
-        self.gene_sqsum = (self.expr**2).sum(axis=0)
-
+        
     def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
 
         print("Calculating differential expression...")
+                
+        # Calculate gene sums / sq-sums if not already calculated
+        if self.gene_sum is None:
+            start = time.time()
+            self.gene_sum = self.expr.sum(axis=0)
+            end = time.time()
+            print(end - start,'seconds to calculate genesums. Sparsity: ', self.sparse)
+            start = time.time()
+            if self.sparse:
+                self.gene_sum = np.array(self.gene_sum).reshape(-1)
+                self.expr2 = self.expr.copy()
+                self.expr2.data **= 2
+                self.gene_sqsum = np.array(self.expr2.sum(axis=0)).reshape(-1)
+            else:
+                self.gene_sqsum = (self.expr**2).sum(axis=0)
+            end = time.time()
+            print(end - start,'seconds to calculate squared genesums. Sparsity: ', self.sparse)
         
         selected_N = len(indices)
         remainder_N = self.num_cells - selected_N
         
         selected_means = self.expr[indices,:].sum(axis=0)
+        if self.sparse:
+            selected_means = np.array(selected_means).reshape(-1)
+        
         remainder_means = (self.gene_sum - selected_means) / remainder_N
         selected_means = selected_means / selected_N
         
-        selected_stds = (self.expr[indices,:]**2).sum(axis=0)
+        if self.sparse:
+            selected_stds = np.array(self.expr2[indices,:].sum(axis=0)).reshape(-1)
+        else:
+            selected_stds = (self.expr[indices,:]**2).sum(axis=0)
+            
         remainder_stds = np.sqrt((self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1))
         selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
 
+        self.sortedGenes = []
         for g in range (0, len(self.geneNames)):
             if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
                 gene = Gene(self.geneNames[g], g, T[g], P[g])
@@ -448,34 +486,38 @@ class UMAPexplorer():
             vproj.append(self.cells[i].proj)
             
         dexpr = self.expr[indices, :]
-
-        for g in range (0, len(self.geneNames)):
-            r, p = ss.pearsonr(vproj, dexpr[:,g])
-            if self.pearsonsThreshold <= abs(r) and p <= self.pvalueThreshold:
-                gene = Gene(self.geneNames[g], g, r, p)
+        vproj = np.array(vproj)
+        n = vproj.size
+        if self.sparse:
+            # based on https://www.javaer101.com/en/article/18344934.html
+            yy = vproj - vproj.mean()
+            xm = dexpr.mean(axis=0).A.ravel()
+            ys = yy / np.sqrt(np.dot(yy, yy))
+            xs = np.sqrt(np.add.reduceat(dexpr.data**2, dexpr.indptr[:-1]) - n*xm*xm)
+            rs = np.add.reduceat(dexpr.data * ys[dexpr.indices], dexpr.indptr[:-1]) / xs
+        else:
+            # based on https://github.com/ikizhvatov/efficient-columnwise-correlation/blob/master/columnwise_corrcoef_perf.py
+            DO = dexpr - (np.sum(dexpr, 0) / np.double(n))
+            DP = vproj - (np.sum(vproj) / np.double(n))        
+            rs = np.dot(DP, DO) / np.sqrt(np.sum(DO ** 2, 0) * np.sum(DP ** 2))
+        
+        # calculate P-value
+        T = -1*np.abs(rs * np.sqrt(n-2))/np.sqrt(1 - (rs**2))
+        ps = ss.t.cdf(T, df=n-2)*2
+        
+        for (i,g) in enumerate(self.geneNames):
+            if (self.pearsonsThreshold <= abs(rs[i])) and (ps[i] <= self.pvalueThreshold):
+                gene = Gene(g, i, rs[i], ps[i])
                 self.sortedGenes.append(gene)
         
         self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
-        '''
-        self.renderer.scrollList.setList(self.sortedGenes)
-
-        self.renderer.requestSelection = False
-
-        self.renderer.selGene = -1
-        self.renderer.colorUMAPShape(RST_COLOR)
-        print("Done")
-        '''
         return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
-        self.minGeneExp = sys.float_info.max
-        self.maxGeneExp = sys.float_info.min
-        for i in range(0, len(indices)):
-            idx = indices[i]
-            cell = self.cells[idx]
-            exp = cell.expression[selGene]
-            self.minGeneExp = min(self.minGeneExp, exp)
-            self.maxGeneExp = max(self.maxGeneExp, exp)   
+        self.minGeneExp = self.expr[:,selGene].min()
+        self.maxGeneExp = self.expr[:,selGene].max()
+        #self.minGeneExp = self.expr[indices,selGene].min()
+        #self.maxGeneExp = self.expr[indices,selGene].max()  
         print("Min/max expression level for gene", self.geneNames[selGene], self.minGeneExp, self.maxGeneExp)
 
     def exportData(self, indices, selGene):
@@ -487,22 +529,23 @@ class UMAPexplorer():
             row = [cell.code, cell.proj]
             rows += [row]
         self.selected_cells = pd.DataFrame.from_records(rows, columns=['index', 'proj'])
-
+        
         rows = []
         gene_names = []
         for gene in self.sortedGenes:
             row = [gene.r, gene.p]
             rows += [row]
             gene_names.append(gene.name)
-        self.significant_genes = pd.DataFrame.from_records(rows, columns=['R', 'P'], index=gene_names)
+        self.significant_genes = pd.DataFrame(rows, columns=['R', 'P'], index=gene_names)
 
         self.selected_gene_name = self.geneNames[selGene]
 
         rows = []
+        expr = self.expr[indices, selGene]
         for i in range(0, len(indices)):
             idx = indices[i]
             cell = self.cells[idx]
-            row = [cell.code, cell.proj, cell.expression[selGene]]
+            row = [cell.code, cell.proj, expr[i]]
             rows += [row]        
         self.selected_gene_cell_data = pd.DataFrame.from_records(rows, columns=['index', 'proj', 'exp'])        
 

@@ -1,5 +1,6 @@
 import numpy as np
 import numpy.linalg as la
+from utils import angleBetween
 
 CLOSED = 0
 SET_SPINE = 1
@@ -8,20 +9,6 @@ COMPLETED = 3
 
 itemHeight = 50
 itemSpace = 10
-
-def angleBetween(v1, v2):
-    # Angle calculation A
-#     amt = np.dot(v1, v2) / (la.norm(v1) * la.norm(v2))
-#     if amt <= -1:
-#         return -py5.PI
-#     elif amt >= 1:
-#         return 0
-#     return np.arccos(amt)
-    # Angle calculation B
-    cosang = np.dot(v1, v2)
-    sinang = la.norm(np.cross(v1, v2))
-    return np.arctan2(sinang, cosang)
-
 
 class ScrollableList:    
     def __init__(self, x, y, w, h):
@@ -248,8 +235,8 @@ class Selector():
         tx = self.multX(sx, sy)
         ty = self.multY(sx, sy)
         
-        cell.selected = 0 <= tx and tx <= self.w and -self.h/2 <= ty and ty <= self.h/2
-
+        cell.selected = 0 <= tx and tx <= self.w and -self.h/2 <= ty and ty <= self.h/2        
+        
     def updateBox(self, x, y):
         self.wx = x
         self.wy = y
