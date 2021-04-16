@@ -23,9 +23,24 @@ class ScrollableList:
         self.pressed = False
         self.visible = False
   
-    def setList(self, genes):
-        self.genes = genes
-        toth = itemHeight * (len(genes) + 3)
+    def setList(self, genes, maxposgenes=100, maxneggenes=100):
+        ## Set a ceiling on the number of positive/negatively associated
+        ## genes that can be shown in the scrollbar
+        rs = np.array([g.r for g in genes])
+        numpos = (rs>0).sum()
+        numneg = (rs<0).sum()
+        if numpos > maxposgenes:
+            displaygenes = genes[:maxposgenes]
+        else:
+            displaygenes = genes[:numpos]
+    
+        if numneg > maxneggenes:
+            displaygenes += genes[(-1*maxneggenes):]
+        else:
+            displaygenes += genes[(-1*numneg):]
+
+        self.genes = displaygenes
+        toth = itemHeight * (len(displaygenes) + 3)
         self.visible = self.h < toth 
         self.scrollbar = ScrollBar(toth, 0.9 * self.w, 0.1 * self.w, self.h)
         self.selItem = -1

@@ -116,7 +116,9 @@ class py5renderer(Sketch):
                 end = time.time()
                 print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
 
-            self.scrollList.setList(sortedGenes)
+            self.scrollList.setList(sortedGenes,
+                                    maxposgenes=self.data.maxdisplaygenes_pos,
+                                    maxneggenes=self.data.maxdisplaygenes_neg)
             self.requestSelection = False
             self.selGene = -1
             self.colorUMAPShape(RST_COLOR)               
@@ -430,11 +432,10 @@ class UMAPexplorer():
         else: self.sparse = False
 
         self.cells = []
-        self.sortedGenes = []
 
         self.selected_cells = []
         self.significant_genes = []
-        self.sortedGenes = []
+        self.sortedGenes = None
         self.selected_gene_name = ''
         self.selected_gene_cell_data = ''
         
@@ -444,6 +445,8 @@ class UMAPexplorer():
         self.pearsonsThreshold = 0.1
         self.tThreshold = 2.0
         self.pvalueThreshold = 0.05
+        self.maxdisplaygenes_pos = 100
+        self.maxdisplaygenes_neg = 100
         
         min1 = self.umap[:,0].min()
         max1 = self.umap[:,0].max()
@@ -509,7 +512,7 @@ class UMAPexplorer():
                 gene = Gene(self.geneNames[g], g, T[g], P[g])
                 self.sortedGenes += [gene]
 
-        self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
+        self.sortedGenes.sort(key=lambda x: x.r, reverse=True)
         return(self.sortedGenes)
 
     def calculateGeneCorrelations(self, indices):
@@ -547,7 +550,7 @@ class UMAPexplorer():
                 gene = Gene(g, i, rs[i], ps[i])
                 self.sortedGenes.append(gene)
         
-        self.sortedGenes.sort(key=lambda x: x.r, reverse=False)
+        self.sortedGenes.sort(key=lambda x: x.r, reverse=True)
         return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
