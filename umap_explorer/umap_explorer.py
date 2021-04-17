@@ -7,8 +7,8 @@ import scipy.sparse as sp
 import sys
 import py5
 from py5 import Sketch
-from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
-from utils import angleBetween
+from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
+from .utils import angleBetween
 
 import time
 
