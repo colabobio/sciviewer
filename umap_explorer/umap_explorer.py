@@ -20,6 +20,7 @@ GENE_WIDTH = 200
 MARGIN = 50
 PADDING = 50
 
+FONT_SIZE = 14
 
 class Gene():
     def __init__(self, n, i, r, p):
@@ -74,6 +75,7 @@ class py5renderer(Sketch):
         self.modeChange = False
         self.violingSelStats = None
         self.violingExlStats = None
+        self.maxValue = 0
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -82,7 +84,7 @@ class py5renderer(Sketch):
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()
         self.initUMAPShape()
-        self.text_font(self.create_font("Helvetica", 14))
+        self.text_font(self.create_font("Helvetica", FONT_SIZE))
 
     def draw(self):        
         self.background(255)
@@ -178,9 +180,9 @@ class py5renderer(Sketch):
         self.selector = Selector()
         self.scrollList = ScrollableList(self.width/2, 0, GENE_WIDTH, self.height)
 
-        w = 100
+        w = 200
         x0 = self.width/2 + 100 + self.width/4 - w/2
-        self.exportBtn = Button(x0, self.height - 75, w, 30, "EXPORT")  
+        self.exportBtn = Button(x0, self.height - 55, w, 30, "EXPORT & CLOSE")  
 
         w = 250
         x0 = self.width/2 + 100 + self.width/4 - w/2        
@@ -229,11 +231,17 @@ class py5renderer(Sketch):
             selected_values = selected_values.toarray().reshape(-1)
             excluded_values = excluded_values.toarray().reshape(-1)
         
-        selected_values_nonzero = [x for x in selected_values if x != 0]
-        excluded_values_nonzero = [x for x in excluded_values if x != 0]
+        # selected_values_nonzero = [x for x in selected_values if x != 0]
+        # excluded_values_nonzero = [x for x in excluded_values if x != 0]
         
         self.violingSelStats = mp.cbook.violin_stats(selected_values, _kde_method)
         self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
+
+        self.maxValue = 0
+        for stats in self.violingSelStats:
+            self.maxValue = max(self.maxValue, stats['vals'].max())
+        for stats in self.violingExlStats:
+            self.maxValue = max(self.maxValue, stats['vals'].max())
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -257,7 +265,6 @@ class py5renderer(Sketch):
             color_grad -= minGeneExp
             color_grad /= (maxGeneExp-minGeneExp)
             self.color_mode(self.HSB, 360, 100, 100)
-            print(color_grad.min(), color_grad.max())
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
                 cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
@@ -299,16 +306,18 @@ class py5renderer(Sketch):
         self.rect(x0 - PADDING, y0 - PADDING, w + 2 * PADDING, h + 2 * PADDING)
 
         if self.selGene != -1:
+            x00 = MARGIN/2
+            y00 = MARGIN/2
             self.no_stroke()
             for i in range(0, 20):
                 f = self.remap(i, 0, 19, 0, 1)
                 self.color_mode(self.HSB, 360, 100, 100)
                 self.fill((1 - f) * 170 + f * 233, 74, 93, 80)
                 self.color_mode(self.RGB, 255, 255, 255)
-                x = self.remap(f, 0, 1, x0 + 20, x0 + 120)
-                self.rect(x, y0 + 20, 100.0/19, 30)
+                x = self.remap(f, 0, 1, x00 + 20, x00 + 120)
+                self.rect(x, y00 + 20, 100.0/19, 30)
             self.fill(130)
-            self.text("Max exp.", x0 + 160, y0 + 35)
+            self.text("Max exp.", x00 + 160, y00 + 35)
 
         self.fill(130)
         self.text("UMAP1", x0, y0 + h + 2.5/2, w, self.height - y0 - h)
@@ -352,8 +361,11 @@ class py5renderer(Sketch):
         w = self.width - x0 - MARGIN
         h = w
         y0 = (self.height - h) / 2
-        
-        self.violin(self.violingSelStats, x0, y0, w/2, h)        
+
+        self.no_stroke()
+        self.fill(self.color(240, 118, 104, 80))
+        self.violin(self.violingSelStats, x0, y0, w/2, h)
+        self.fill(self.color(150, 80))
         self.violin(self.violingExlStats, x0 + w/2, y0, w/2, h)
 
         self.stroke_weight(2)
@@ -361,89 +373,29 @@ class py5renderer(Sketch):
         self.no_fill()
         self.rect(x0, y0, w, h)
 
+        self.fill(130)
+        self.text("{:1.2f}".format(self.data.maxGeneExp), x0 - 20, y0 + 5)
+        self.text("{:1.2f}".format(self.data.minGeneExp), x0 - 20, y0 + h - 5)
+        self.text("SELECTED CELLS", x0, y0 + h + 15, w/2, 2 * FONT_SIZE)
+        self.text("EXCLUDED CELLS", x0 + w/2, y0 + h + 15, w/2, 2 * FONT_SIZE)
+
     # Adapted from https://matplotlib.org/stable/_modules/matplotlib/axes/_axes.html#Axes.violin for drawing the actual violins
     def violin(self, vpstats, x0, y0, w, h):
-        # print("Drawing violin")
-
-
-        # print(len(vpstats['vals']), len(vpstats['coords']))
-        # showmeans = False
-        # showextrema = True
-        # showmedians = False
-
-        # Statistical quantities to be plotted on the violins
-        # means = []
-        # mins = []
-        # maxes = []
-        # medians = []
-        # quantiles = np.asarray([])
-
         N = len(vpstats)
         positions = range(1, N + 1)
 
         widths = 0.5
         widths = [widths] * N
-
+        scalef = 0.4 * w / self.maxValue
         for stats, pos, width in zip(vpstats, positions, widths):
             self.no_stroke()
-            self.fill(180)
             self.begin_shape(self.QUAD_STRIP)
             for nx, ny in zip(stats['vals'], stats['coords']):
-                y = self.remap(ny, 0, 1, y0, y0 + h)
+                y = self.remap(ny, 0, 1, y0 + h, y0)
                 cx = x0 + w/2
-                self.vertex(cx - 10 * nx, y)
-                self.vertex(cx + 10 * nx, y)
+                self.vertex(cx - scalef * nx, y)
+                self.vertex(cx + scalef * nx, y)
             self.end_shape()
-
-            # print(len(stats['vals']))
-            # print(len(stats['coords']))
-
-        # widths = 0.5
-        # pmins = -0.25 * np.array(widths) + positions
-        # pmaxes = 0.25 * np.array(widths) + positions 
-
-
-        # fill = self.fill_betweenx
-        # perp_lines = self.hlines
-        # par_lines = self.vlines
-
-
-
-
-
-        # self.violingSelStats = mp.cbook.violin_stats(selected_values, _kde_method)
-        # self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)
-
-        # vpstats : list of dicts
-        #   - ``coords``: A list of scalars containing the coordinates that
-        #     the violin's kernel density estimate were evaluated at.
-        #   - ``vals``: A list of scalars containing the values of the
-        #     kernel density estimate at each of the coordinates given
-        #     in *coords*.
-        #   - ``mean``: The mean value for this violin's dataset.
-        #   - ``median``: The median value for this violin's dataset.
-        #   - ``min``: The minimum value for this violin's dataset.
-        #   - ``max``: The maximum value for this violin's dataset.
-
-        
-        
-        '''
-        x0 = self.width/2 + 200 + 50
-        w = self.width - x0 - 100
-        h = w
-        y0 = (self.height - h) / 2        
-        self.scatterShape = self.create_shape(self.GROUP)        
-        for i in range(0, len(self.indices)):
-            idx = self.indices[i]
-            cell = self.data.cells[idx]
-            x = self.remap(cell.proj, 0, 1, x0 + 5, x0 + w - 5)
-            y = self.remap(cell.expression[self.selGene], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
-            sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
-            sh.set_stroke(False)
-            sh.set_fill(self.color(150, 80))
-            self.scatterShape.add_child(sh)
-        '''
-
 
     def setClip(self):
         x0 = 25
