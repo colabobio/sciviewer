@@ -1,4 +1,4 @@
-name: umap-explorer
+name: sciviewer
 channels:
   - conda-forge
 dependencies:
