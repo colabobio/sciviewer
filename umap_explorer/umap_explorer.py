@@ -71,6 +71,7 @@ class py5renderer(Sketch):
         self.scatterShape = None
         self.exportBtn = None
         self.modeBtn = None
+        self.modeChange = False
         self.violingSelStats = None
         self.violingExlStats = None
     
@@ -94,7 +95,13 @@ class py5renderer(Sketch):
                 self.initViolinShape()
             self.colorUMAPShape(EXP_COLOR)            
             self.selectedGene = False
-                
+        
+        if self.modeChange:
+            if self.modeBtn.state == 1:
+                self.initScatterShape()
+            else:
+                self.initViolinShape()
+
         self.showUMAPScatter()
 
         if self.requestSelection and 1 < len(self.indices):
@@ -105,11 +112,6 @@ class py5renderer(Sketch):
                 end = time.time()
                 print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
             else:
-                # Obtain set of unselected cells for violin plots
-                setindices = set(self.indices)
-                num_cells = self.data.num_cells
-                self.excluded_indices = [i for i in range(num_cells) if i not in setindices]
-                
                 # Calculate differential expression
                 start = time.time()
                 sortedGenes = self.data.calculateDiffExpr(self.indices)
@@ -132,7 +134,7 @@ class py5renderer(Sketch):
                 self.showGeneScatter()
             else:
                 # Need to make violin plot visual
-                self.showGeneViolin()
+                self.showGeneViolinPlot()
 
         self.modeBtn.display(self)
         self.exportBtn.display(self)
@@ -158,8 +160,11 @@ class py5renderer(Sketch):
             self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
             self.data.exportData(self.indices, self.selGene)
-        elif self.modeBtn.contains(self.mouse_x, self.mouse_y):
-            print("Selected mode", self.modeBtn.state)
+        else: 
+            pstate = self.modeBtn.state
+            if self.modeBtn.contains(self.mouse_x, self.mouse_y):
+                self.modeChange = pstate != self.modeBtn.state
+                print("Selected mode", self.modeBtn.state)
 
         sel = self.scrollList.release(self.mouse_x, self.mouse_y)
         if sel != -1 and sel != self.selGene:
@@ -226,7 +231,7 @@ class py5renderer(Sketch):
         excluded_values_nonzero = [x for x in excluded_values if x != 0]
         
         self.violingSelStats = mp.cbook.violin_stats(selected_values, _kde_method)
-        self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)
+        self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -273,6 +278,11 @@ class py5renderer(Sketch):
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
+
+            setindices = set(self.indices)
+            num_cells = self.data.num_cells
+            self.excluded_indices = [i for i in range(num_cells) if i not in setindices]
+
             end = time.time()
             print(end - start,'seconds to select and project cells')
                     
@@ -335,23 +345,67 @@ class py5renderer(Sketch):
         self.text("1", x0 + w - 5, y0 + h + 15)
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
 
-    def showGeneViolin(self):
+    def showGeneViolinPlot(self):
         x0 = self.width/2 + GENE_WIDTH + MARGIN
         w = self.width - x0 - MARGIN
         h = w
         y0 = (self.height - h) / 2
         
+        self.violin(self.violingSelStats, x0, y0, w/2, h)        
+        self.violin(self.violingExlStats, x0 + w/2, y0, w/2, h)
+
         self.stroke_weight(2)
         self.stroke(120)
         self.no_fill()
         self.rect(x0, y0, w, h)
 
+    # Adapted from https://matplotlib.org/stable/_modules/matplotlib/axes/_axes.html#Axes.violin for drawing the actual violins
+    def violin(self, vpstats, x0, y0, w, h):
+        # print("Drawing violin")
+
+
+        # print(len(vpstats['vals']), len(vpstats['coords']))
+        # showmeans = False
+        # showextrema = True
+        # showmedians = False
+
         # Statistical quantities to be plotted on the violins
-        means = []
-        mins = []
-        maxes = []
-        medians = []
-        quantiles = np.asarray([])
+        # means = []
+        # mins = []
+        # maxes = []
+        # medians = []
+        # quantiles = np.asarray([])
+
+        N = len(vpstats)
+        positions = range(1, N + 1)
+
+        widths = 0.5
+        widths = [widths] * N
+
+        for stats, pos, width in zip(vpstats, positions, widths):
+            self.no_stroke()
+            self.fill(180)
+            self.begin_shape(self.QUAD_STRIP)
+            for nx, ny in zip(stats['vals'], stats['coords']):
+                y = self.remap(ny, 0, 1, y0, y0 + h)
+                cx = x0 + w/2
+                self.vertex(cx - 10 * nx, y)
+                self.vertex(cx + 10 * nx, y)
+            self.end_shape()
+
+            # print(len(stats['vals']))
+            # print(len(stats['coords']))
+
+        # widths = 0.5
+        # pmins = -0.25 * np.array(widths) + positions
+        # pmaxes = 0.25 * np.array(widths) + positions 
+
+
+        # fill = self.fill_betweenx
+        # perp_lines = self.hlines
+        # par_lines = self.vlines
+
+
 
 
 
@@ -369,7 +423,7 @@ class py5renderer(Sketch):
         #   - ``min``: The minimum value for this violin's dataset.
         #   - ``max``: The maximum value for this violin's dataset.
 
-        ## See https://matplotlib.org/stable/_modules/matplotlib/axes/_axes.html#Axes.violin for drawing the actual violins
+        
         
         '''
         x0 = self.width/2 + 200 + 50
@@ -387,7 +441,7 @@ class py5renderer(Sketch):
             sh.set_fill(self.color(150, 80))
             self.scatterShape.add_child(sh)
         '''
-            
+
 
     def setClip(self):
         x0 = 25
