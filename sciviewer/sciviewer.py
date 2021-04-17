@@ -406,7 +406,7 @@ class py5renderer(Sketch):
     def delClip(self):
         self.no_clip()        
 
-class UMAPexplorer():
+class sciviewer():
     
     def __init__(self, umap, expr, gene_names=None, cell_names=None):    
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
