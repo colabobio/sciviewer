@@ -5,19 +5,24 @@ This prototype of an RNA-seq Embedding Viewer allows exploring an UMAP embedding
 
 ## Installation
 - Prepare conda environment containing dependencies for py5:
-  ```conda env create -n py5coding -f http://py5.ixora.io/install/py5_environment.yml```
+  ```conda env create -n umap-explorer -f https://raw.githubusercontent.com/colabobio/embedview/master/umap-explorer_env.yml```
 - Activate the environment created above:
-  ```conda activate py5coding```
-- Install the umap_explorer package in this repo:
-  ```python setup.py install```
+  ```conda activate umap-explorer```
+- Alternatively, if you want to append the needed dependencies to an existing conda environment, you can do the following:
+   -  ```conda env update -n your_existing_environment -f https://raw.githubusercontent.com/colabobio/embedview/master/umap-explorer_env.yml```
+   -  ```conda activate your_existing_environment```
+- Install the umap_explorer package:
+  ```python -m pip install --index-url https://test.pypi.org/simple/ --no-deps umap-explorer```
 - To uninstall:
   ```pip uninstall umap-explorer```
 - To load the module from a notebook wihtout installing (good for debugging), add the following imports to the notebook:
+
+```
+ import sys
+ sys.path.insert(0, '../umap_explorer/')
+ from umap_explorer import UMAPexplorer
   ```
-  import sys
-  sys.path.append('../umap_explorer')
-  from umap_explorer import UMAPexplorer
-  ```
+- Note, the above won't work if you don't remove the relative imports from the local .py files.
 
 ## Jupyter notebook
 
