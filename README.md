@@ -30,14 +30,14 @@ This Jupyter notebook demonstrates the use of [py5](http://py5.ixora.io/), a ver
 
 Processing's drawing API and engine can be run from a Jupyter notebook to enable users explore their datasets and then bring the results of their exploration directly into the notebook for further analysis:
 
-![RNA-seq embed viewer running a Jupyter notebook](images/jupyter_screenshot1.jpg)
+![RNA-seq embed viewer running a Jupyter notebook](extras/images/jupyter_screenshot1.jpg)
 
 The datasets can be quite large, as seen in the next image:
 
-![RNA-seq embed viewer loading a large dataset](images/jupyter_screenshot2.jpg)
+![RNA-seq embed viewer loading a large dataset](extras/images/jupyter_screenshot2.jpg)
 
 ## Processing sketch
 
 The viewer can be run as a Processing sketch, or export from the PDE as a stand-alone application. Its functionality is identical to the Jupyter notebook. Available under the standalone folder.
 
-![RNA-seq embed viewer running in Processing](images/processing_screenshot.jpg)
+![RNA-seq embed viewer running in Processing](extras/images/processing_screenshot.jpg)
