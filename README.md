@@ -1,26 +1,26 @@
-# RNA-seq Embedding Viewer
+# Single Cell Interactive Viewer
 
-This prototype of an RNA-seq Embedding Viewer allows exploring an UMAP embedding of single-cell RNA-seq data. The user can select directions in the UMAP plane, and the viewer will calculate the genes with the highest correlation with those directions. It is available as a stand-along Processing sketch and as a Jupyter notebook.
-
+This is an interactive viewer for Jupyter notebooks that allows users exploring an embedding of single-cell RNA-seq data. The user can select directions in the 2D embedding plane (e.g.: UMAP or tSNE), and the viewer will calculate the genes with the highest correlation along those directions. In addition, you can select a group of cells and find the genes that are most differentially expressed.
 
 ## Installation
+
 - Prepare conda environment containing dependencies for py5:
-  ```conda env create -n umap-explorer -f https://raw.githubusercontent.com/colabobio/embedview/master/umap-explorer_env.yml```
+  ```conda env create -n sciviewer -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml```
 - Activate the environment created above:
-  ```conda activate umap-explorer```
+  ```conda activate sciviewer```
 - Alternatively, if you want to append the needed dependencies to an existing conda environment, you can do the following:
-   -  ```conda env update -n your_existing_environment -f https://raw.githubusercontent.com/colabobio/embedview/master/umap-explorer_env.yml```
+   -  ```conda env update -n your_existing_environment -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml```
    -  ```conda activate your_existing_environment```
-- Install the umap_explorer package:
-  ```python -m pip install --index-url https://test.pypi.org/simple/ --no-deps umap-explorer```
+- Install the sciviewer package:
+  ```python -m pip install --index-url https://test.pypi.org/simple/ --no-deps sciviewer```
 - To uninstall:
-  ```pip uninstall umap-explorer```
+  ```pip uninstall sciviewer```
 - To load the module from a notebook wihtout installing (good for debugging), add the following imports to the notebook:
 
 ```
  import sys
- sys.path.insert(0, '../umap_explorer/')
- from umap_explorer import UMAPexplorer
+ sys.path.insert(0, '../sciviewer/')
+ from sciviewer import sciviewer
   ```
 - Note, the above won't work if you don't remove the relative imports from the local .py files.
 
@@ -35,9 +35,3 @@ Processing's drawing API and engine can be run from a Jupyter notebook to enable
 The datasets can be quite large, as seen in the next image:
 
 ![RNA-seq embed viewer loading a large dataset](extras/images/jupyter_screenshot2.jpg)
-
-## Processing sketch
-
-The viewer can be run as a Processing sketch, or export from the PDE as a stand-alone application. Its functionality is identical to the Jupyter notebook. Available under the standalone folder.
-
-![RNA-seq embed viewer running in Processing](extras/images/processing_screenshot.jpg)
