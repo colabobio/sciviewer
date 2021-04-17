@@ -168,7 +168,6 @@ class py5renderer(Sketch):
             pstate = self.modeBtn.state
             if self.modeBtn.contains(self.mouse_x, self.mouse_y):
                 self.modeChange = pstate != self.modeBtn.state
-                print("Selected mode", self.modeBtn.state)
 
         sel = self.scrollList.release(self.mouse_x, self.mouse_y)
         if sel != -1 and sel != self.selGene:
