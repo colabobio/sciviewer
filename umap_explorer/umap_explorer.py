@@ -182,7 +182,7 @@ class py5renderer(Sketch):
 
         w = 200
         x0 = self.width/2 + 100 + self.width/4 - w/2
-        self.exportBtn = Button(x0, self.height - 75, w, 30, "EXPORT & CLOSE")  
+        self.exportBtn = Button(x0, self.height - 55, w, 30, "EXPORT & CLOSE")  
 
         w = 250
         x0 = self.width/2 + 100 + self.width/4 - w/2        
@@ -265,7 +265,6 @@ class py5renderer(Sketch):
             color_grad -= minGeneExp
             color_grad /= (maxGeneExp-minGeneExp)
             self.color_mode(self.HSB, 360, 100, 100)
-            print(color_grad.min(), color_grad.max())
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
                 cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
@@ -307,16 +306,18 @@ class py5renderer(Sketch):
         self.rect(x0 - PADDING, y0 - PADDING, w + 2 * PADDING, h + 2 * PADDING)
 
         if self.selGene != -1:
+            x00 = MARGIN/2
+            y00 = MARGIN/2
             self.no_stroke()
             for i in range(0, 20):
                 f = self.remap(i, 0, 19, 0, 1)
                 self.color_mode(self.HSB, 360, 100, 100)
                 self.fill((1 - f) * 170 + f * 233, 74, 93, 80)
                 self.color_mode(self.RGB, 255, 255, 255)
-                x = self.remap(f, 0, 1, x0 + 20, x0 + 120)
-                self.rect(x, y0 + 20, 100.0/19, 30)
+                x = self.remap(f, 0, 1, x00 + 20, x00 + 120)
+                self.rect(x, y00 + 20, 100.0/19, 30)
             self.fill(130)
-            self.text("Max exp.", x0 + 160, y0 + 35)
+            self.text("Max exp.", x00 + 160, y00 + 35)
 
         self.fill(130)
         self.text("UMAP1", x0, y0 + h + 2.5/2, w, self.height - y0 - h)
@@ -361,7 +362,10 @@ class py5renderer(Sketch):
         h = w
         y0 = (self.height - h) / 2
 
+        self.no_stroke()
+        self.fill(self.color(240, 118, 104, 80))
         self.violin(self.violingSelStats, x0, y0, w/2, h)
+        self.fill(self.color(150, 80))
         self.violin(self.violingExlStats, x0 + w/2, y0, w/2, h)
 
         self.stroke_weight(2)
@@ -385,7 +389,6 @@ class py5renderer(Sketch):
         scalef = 0.4 * w / self.maxValue
         for stats, pos, width in zip(vpstats, positions, widths):
             self.no_stroke()
-            self.fill(180)
             self.begin_shape(self.QUAD_STRIP)
             for nx, ny in zip(stats['vals'], stats['coords']):
                 y = self.remap(ny, 0, 1, y0 + h, y0)
