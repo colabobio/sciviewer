@@ -98,15 +98,16 @@ class Py5Renderer(Sketch):
             self.colorUMAPShape(EXP_COLOR)            
             self.selectedGene = False
         
-        if self.modeChange:
-            if (self.modeBtn.state == 1) and (len(self.indices) > 0):
+        if self.modeChange and (len(self.indices) > 0) and (self.selGene != -1):
+            if (self.modeBtn.state == 1):
                 self.initScatterShape()
-            elif len(self.indices) > 0:
+            else:
                 self.initViolinShape()
 
         self.showUMAPScatter()
 
-        if self.requestSelection and 1 < len(self.indices):
+        if self.requestSelection and (len(self.indices) > 0):
+            self.data.update_selected_cells(self.indices)
             if self.modeBtn.state == 1:
                 # Correlation of expression with projection onto UMAP axis
                 start = time.time()
@@ -123,6 +124,9 @@ class Py5Renderer(Sketch):
             self.scrollList.setList(sortedGenes,
                                     maxposgenes=self.data.maxdisplaygenes_pos,
                                     maxneggenes=self.data.maxdisplaygenes_neg)
+            if len(sortedGenes) == 0:
+                print('No genes pass the statistical significance / effect size thresholds.')
+                print('Please make another selection or re-run with lower thresholds')
             self.requestSelection = False
             self.selGene = -1
             self.colorUMAPShape(RST_COLOR)               
@@ -408,7 +412,9 @@ class Py5Renderer(Sketch):
 
 class SCIViewer():
     
-    def __init__(self, umap, expr, gene_names=None, cell_names=None):    
+    def __init__(self, umap, expr, gene_names=None, cell_names=None,
+                pearsonsThreshold=0.1, tThreshold=2.0, pvalueThreshold=0.05,
+                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100):    
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
         elif type(umap) is np.ndarray: self.umap = umap
         else: sys.exit('umap must be a Pandas DataFrame or Numpy ndarray')
@@ -439,19 +445,22 @@ class SCIViewer():
         self.cells = []
 
         self.selected_cells = []
-        self.significant_genes = []
+        self.significant_genes = None
         self.sortedGenes = None
         self.selected_gene_name = ''
-        self.selected_gene_cell_data = ''
+        self.selected_gene_cell_data = None
         
         self.gene_sum = None
         self.gene_sqsum = None
 
-        self.pearsonsThreshold = 0.1
-        self.tThreshold = 2.0
-        self.pvalueThreshold = 0.05
-        self.maxdisplaygenes_pos = 100
-        self.maxdisplaygenes_neg = 100
+        self.pearsonsThreshold = pearsonsThreshold
+        self.tThreshold = tThreshold
+        self.pvalueThreshold = pvalueThreshold
+        self.maxdisplaygenes_pos = maxdisplaygenes_pos
+        self.maxdisplaygenes_neg = maxdisplaygenes_neg
+        
+        self.results_diffexpr = None
+        self.results_proj_correlation = None
         
         min1 = self.umap[:,0].min()
         max1 = self.umap[:,0].max()
@@ -468,6 +477,10 @@ class SCIViewer():
             cells.append(cell)
         self.cells = cells
         self.num_cells = len(cells)
+        
+    def update_selected_cells(self, indices):
+        celldata = [[i, self.cells[i].code, self.cells[i].proj] for i in indices]
+        self.selected_cells = pd.DataFrame(celldata, columns=['index', 'cell_name', 'projection'])
         
     def calculateDiffExpr(self, indices):
         print("Selected", len(indices), "cells")
@@ -510,7 +523,10 @@ class SCIViewer():
         selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
-
+        
+        self.results_diffexpr = pd.DataFrame([T, P], columns=self.geneNames,
+                                                           index=['T', 'P']).T
+        
         self.sortedGenes = []
         for g in range (0, len(self.geneNames)):
             if self.pearsonsThreshold <= abs(T[g]) and P[g] <= self.pvalueThreshold:
@@ -549,7 +565,10 @@ class SCIViewer():
         # calculate P-value
         T = -1*np.abs(rs * np.sqrt(n-2))/np.sqrt(1 - (rs**2))
         ps = ss.t.cdf(T, df=n-2)*2
-        
+
+        self.results_proj_correlation = pd.DataFrame([rs, ps], columns=self.geneNames,
+                                                           index=['R', 'P']).T
+
         for (i,g) in enumerate(self.geneNames):
             if (self.pearsonsThreshold <= abs(rs[i])) and (ps[i] <= self.pvalueThreshold):
                 gene = Gene(g, i, rs[i], ps[i])
@@ -566,15 +585,7 @@ class SCIViewer():
         print("Min/max expression level for gene", self.geneNames[selGene], self.minGeneExp, self.maxGeneExp)
 
     def export_data(self, indices, selGene):
-        print("EXPORTING DATA...")
-        rows = []
-        for i in range(0, len(indices)):
-            idx = indices[i]
-            cell = self.cells[idx]
-            row = [cell.code, cell.proj]
-            rows += [row]
-        self.selected_cells = pd.DataFrame.from_records(rows, columns=['index', 'proj'])
-        
+        print("EXPORTING DATA...")        
         rows = []
         gene_names = []
         for gene in self.sortedGenes:
