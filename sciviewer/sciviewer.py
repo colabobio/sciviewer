@@ -99,9 +99,9 @@ class Py5Renderer(Sketch):
             self.selectedGene = False
         
         if self.modeChange:
-            if self.modeBtn.state == 1:
+            if (self.modeBtn.state == 1) and (len(self.indices) > 0):
                 self.initScatterShape()
-            else:
+            elif len(self.indices) > 0:
                 self.initViolinShape()
 
         self.showUMAPScatter()
