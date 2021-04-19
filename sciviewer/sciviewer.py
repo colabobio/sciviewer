@@ -8,7 +8,7 @@ import sys
 import py5
 from py5 import Sketch
 from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
-from .utils import angleBetween
+from .utils import angle_between
 
 import time
 
@@ -48,10 +48,10 @@ class Cell:
         if self.selected:
             dirv = np.array([sel.nx1 - sel.nx0, sel.ny1 - sel.ny0])
             celv = np.array([self.umap1 - sel.nx0, self.umap2 - sel.ny0])
-            a = angleBetween(dirv, celv)        
+            a = angle_between(dirv, celv)        
             self.proj = np.cos(a) * la.norm(celv) / la.norm(dirv)
 
-    def createShape(self, p5obj, x0, y0, w, h):
+    def create_shape(self, p5obj, x0, y0, w, h):
         x = p5obj.remap(self.umap1, 0, 1, x0, x0 + w)
         y = p5obj.remap(self.umap2, 0, 1, y0, y0 + h)        
         sh = p5obj.create_shape(p5obj.ELLIPSE, x, y, 5, 5)
@@ -59,7 +59,7 @@ class Cell:
         sh.set_fill(p5obj.color(150, 80))
         return sh        
        
-class py5renderer(Sketch):
+class Py5Renderer(Sketch):
     def __init__(self, dataobj):
         super().__init__()
         self.data = dataobj
@@ -83,7 +83,7 @@ class py5renderer(Sketch):
     def setup(self):
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()
-        self.initUMAPShape()
+        self.initUMAPshape()
         self.text_font(self.create_font("Helvetica", FONT_SIZE))
 
     def draw(self):        
@@ -163,7 +163,7 @@ class py5renderer(Sketch):
         if self.mouse_x < self.width/2:
             self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
-            self.data.exportData(self.indices, self.selGene)
+            self.data.export_data(self.indices, self.selGene)
         else: 
             pstate = self.modeBtn.state
             if self.modeBtn.contains(self.mouse_x, self.mouse_y):
@@ -187,7 +187,7 @@ class py5renderer(Sketch):
         x0 = self.width/2 + 100 + self.width/4 - w/2        
         self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
-    def initUMAPShape(self):
+    def initUMAPshape(self):
         x0 = MARGIN/2 + PADDING
         y0 = MARGIN/2 + PADDING
         w = self.width/2 - MARGIN - 2 * PADDING
@@ -195,7 +195,7 @@ class py5renderer(Sketch):
 
         self.umapShape = self.create_shape(self.GROUP)
         for cell in self.data.cells:
-            sh = cell.createShape(self, x0, y0, w, h)
+            sh = cell.create_shape(self, x0, y0, w, h)
             self.umapShape.add_child(sh)
 
     def initScatterShape(self):
@@ -406,7 +406,7 @@ class py5renderer(Sketch):
     def delClip(self):
         self.no_clip()        
 
-class sciviewer():
+class SCIViewer():
     
     def __init__(self, umap, expr, gene_names=None, cell_names=None):    
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
@@ -458,7 +458,7 @@ class sciviewer():
         min2 = self.umap[:,1].min()
         max2 = self.umap[:,1].max()
 
-        self.renderer = py5renderer(self)
+        self.renderer = Py5Renderer(self)
         
         start = time.time()
         cells = []
@@ -474,7 +474,7 @@ class sciviewer():
 
         print("Calculating differential expression...")
                 
-        # Calculate gene sums / sq-sums if not already calculated
+        # Calculate gene sums & sq-sums if not already calculated
         if self.gene_sum is None:
             start = time.time()
             self.gene_sum = self.expr.sum(axis=0)
@@ -565,7 +565,7 @@ class sciviewer():
         #self.maxGeneExp = self.expr[indices,selGene].max()  
         print("Min/max expression level for gene", self.geneNames[selGene], self.minGeneExp, self.maxGeneExp)
 
-    def exportData(self, indices, selGene):
+    def export_data(self, indices, selGene):
         print("EXPORTING DATA...")
         rows = []
         for i in range(0, len(indices)):

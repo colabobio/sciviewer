@@ -1,1 +1,1 @@
-from .sciviewer import sciviewer
+from .sciviewer import SCIViewer

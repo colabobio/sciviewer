@@ -3,16 +3,16 @@ from setuptools import setup
 with open("README.md", "r") as fh:
       long_description = fh.read()
 
-setup(name='umap_explorer',
-      version='0.2',
+setup(name='sciviewer',
+      version='alpha',
       description='Tool for interactive exploration of 2D embeddings in Jupyter',
       long_description=long_description,
       long_description_content_type='text/markdown',
-      url='https://github.com/broadinstitute/embedview',
+      url='https://github.com/colabobio/sciviewer',
       author='Andres Colubri, Dylan Kotliar',
       author_email='andres@broadinstitute.org, dylan_kotliar@hms.harvard.edu',
       license='MIT',
-      packages=['umap_explorer'],
+      packages=['sciviewer'],
       install_requires=[
           'py5',
       ],

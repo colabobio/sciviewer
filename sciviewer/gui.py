@@ -1,6 +1,6 @@
 import numpy as np
 import numpy.linalg as la
-from .utils import angleBetween
+from .utils import angle_between
 
 CLOSED = 0
 SET_SPINE = 1
@@ -259,7 +259,7 @@ class Selector():
         spdir = np.array([self.spx1 - self.spx0, self.spy1 - self.spy0])
         bxdir = np.array([self.wx - self.spx1, self.wy - self.spy1])
 
-        a = angleBetween(spdir, bxdir)
+        a = angle_between(spdir, bxdir)
         d = np.sin(a) * la.norm(bxdir)
     
         self.angle = np.arctan2(spdir[1], spdir[0])

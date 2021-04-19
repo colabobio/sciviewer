@@ -1,7 +1,7 @@
 import numpy as np
 import numpy.linalg as la
 
-def angleBetween(v1, v2):
+def angle_between(v1, v2):
     # Angle calculation A
 #     amt = np.dot(v1, v2) / (la.norm(v1) * la.norm(v2))
 #     if amt <= -1:
