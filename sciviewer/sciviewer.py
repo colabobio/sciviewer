@@ -141,7 +141,6 @@ class Py5Renderer(Sketch):
             if self.modeBtn.state == 1:
                 self.showGeneScatter()
             else:
-                # Need to make violin plot visual
                 self.showGeneViolinPlot()
 
         self.modeBtn.display(self)
@@ -398,7 +397,7 @@ class Py5Renderer(Sketch):
                 cx = x0 + w/2
                 self.vertex(cx - scalef * nx, y)
                 self.vertex(cx + scalef * nx, y)
-            self.end_shape()
+            self.end_shape()            
 
     def setClip(self):
         x0 = 25
@@ -411,10 +410,56 @@ class Py5Renderer(Sketch):
         self.no_clip()        
 
 class SCIViewer():
+    """Invetarctive visualizer for 2D embeddings of single-cell gene expression
+    
+    When the visualizer is opened by the explore_data method, displays the 2D embedding with the option to select cells and a direction on the 2D plane. When the 'directional' option is toggled, it will compute the correlation of all genes with the direction for the selected cells and will display a list of the most correlated genes. Selecting a gene will show a scatter plot of each cell's position projected onto the direction, against its expression of the selected gene. Alternatively, if the 'differential' option is toggled, it will compute the T-test differential expression of the selected cells against all the non-selected cells and display those that are most differentially expressed. Selecting a gene will show a violin plot of the expression of that gene in the selected cells compared against all of the other cells. Press the Export and Close button to close the visualizer when you are done.
+    
+    Public Methods
+    ------------------
+    explore_data() - starts the visualizer
+    
+    Required arguments
+    ------------------
+    umap (pandas.DataFrame, numpy.ndarray) - Nx2 matrix of cells by 2D embedding coordinates (can be any embedding including tsne, umap...)
+    expr - (pandas.DataFrame, numpy.ndarray, scipy.sparse.csc_matrix) - NxG matrix of cells by genes. The method was tested on log2(TP10K) data but other similar normalizations should work as well. If a Pandas DataFrame is provided, the indeces are used as cell names and the columns are used as gene names. Otherwise, these can be provided as the gene_names and cell_names optional arguments. If a csc_matrix is provided, all of the computations will exploit the sparsity of the data which can provide a substantial (orders of magnitude) speedup for large datasets.
+    
+    Optional arguments:
+    ------------------
+    gene_names (list of strings) -- gene names. (default: inferred from DataFrame columns or ['0', '1' ...'G'])
+    cell_names -- (list of strings) -- cell names. (default: inferred from DataFrame indeces or ['0', '1' ...'N'])
+    pearsonsThreshold (float)-- Pearson correlation threshold (absolute value) for genes to display in the scroll list for the directional analysis (default: 0.1)
+    tThreshold (float) -- T-statistic association threshold (absolute value) for genes to display in the scroll list for the differential analysis (default: 2.0)
+    pvalueThreshold (float) -- P-value  threshold (absolute value) for genes to display in the scroll list for both differential and directional analysis (default: 0.05)
+    maxdisplaygenes_pos (int) -- maximum # of positively associated genes to show in the scroll list (by either directional or differential analysis) (default: 100)
+    maxdisplaygenes_neg (int) -- maximum # of negatively associated genes to show in the scroll list (by either directional or differential analysis)  (default: 100)
+    
+    Attributes
+    ----------
+    selected_cells : pandas.DataFrame
+        information about the currently selected cells.
+        
+    results_proj_correlation : pandas.DataFrame
+        results from the most recent directional analysis (Pearson correlation and P-value for all genes). Updated whenever a new selection is made in the 'directional' mode
+        
+    results_diffexpr : pandas.DataFrame
+        results from the most recent differential expression analysis (T-statistic and P-value for all genes). Updated whenever a new selection is made in the 'differential' mode
+        
+    significant_genes : pandas.DataFrame
+        results from the most recent differential or directional analysis, whatever was run most recently. Only includes genes that pass the significance / effect size thresholds. Updated when the 'Export and close' button is pressed.
+    
+    selected_gene_cell_data : pandas.DataFrame
+        includes the gene expression and projection coordinates for the selected cells at the time the 'Export and close' button is pressed.
+    """
     
     def __init__(self, umap, expr, gene_names=None, cell_names=None,
                 pearsonsThreshold=0.1, tThreshold=2.0, pvalueThreshold=0.05,
-                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100):    
+                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100):
+
+
+        
+        
+        
+      
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
         elif type(umap) is np.ndarray: self.umap = umap
         else: sys.exit('umap must be a Pandas DataFrame or Numpy ndarray')
