@@ -33,7 +33,7 @@ pip uninstall sciviewer
 
 ## Quick start
 
-Sciviewer is executed from a Jupyter notebook such as in the examples directory. It is run by initializing a SCIViewer class with the 2D embedding (# cells X 2) and the expression data (# cells X # genes). E.g.
+Sciviewer is executed from a Jupyter notebook such as in the examples directory. It is run by initializing a SCIViewer object with the 2D embedding (# cells X 2) and the expression data (# cells X # genes) and then running the explore_data method. E.g.
 
 ```
 from sciviewer import SCIViewer
@@ -41,34 +41,17 @@ svobj = SCIViewer(umap, expr)
 svobj.explore_data()
 ```
 
+Running the code above will cause the visualizer to appear. The data can then be explored as demonstrated below
 
+<iframe width="560" height="315" src="https://www.youtube.com/embed/eUrQWPrLkDM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
 
-Running the code above will cause the visualizer to appear. The user selects cells in 2 steps. first clicking and dragging to define an initial axis, 
-
-
-
-
+Some key usage points:
  - The expression data can be provided as a Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
  - Providing the data as a csc_matrix is recommended for large datasets as it can lead to a considerable (1-2 order or magnitude) performance speedup.
  - If the expression data is provided as a Pandas DataFrame, the cell names are inferred from the index and the gene names are inferred from the columns. Otherwise, the gene names and cell names can be provided when initializing the SCIViewer class with the gene_names and cell_names arguments.
- - See the example notebooks for more details
+ - The selected_cells attribute of the sciviewer object is updated whenever a new set of cells are selected, regardless of the mode, and contains information about the selected cells. The results_proj_correlation attribute of the sciviewer object is updated whenever a new selection is made in the "directional" mode and contains the Pearson correlation and P-values of all genes for the selected direction and cells. The results_diffexpr attribute is updated when a new selection is made in the "differential" mode and contains the T-statistic and P-value for the differential expression test (simple Welch's T-test). These are updated in real time as the visualizer is in use.
 
-
-
-
-
-It takes 2 primary inputs, 
-
-This Jupyter notebook demonstrates the use of [py5](http://py5.ixora.io/), a version of Processing for Python, to create an interactive viewer of RNA-seq embedding data. Find it under the notebook folder.
-
-Processing's drawing API and engine can be run from a Jupyter notebook to enable users explore their datasets and then bring the results of their exploration directly into the notebook for further analysis:
-
-![RNA-seq embed viewer running a Jupyter notebook](extras/images/jupyter_screenshot1.jpg)
-
-The datasets can be quite large, as seen in the next image:
-
-![RNA-seq embed viewer loading a large dataset](extras/images/jupyter_screenshot2.jpg)
-
+See the example notebooks for more details
 
 ## Development / debugging
 
