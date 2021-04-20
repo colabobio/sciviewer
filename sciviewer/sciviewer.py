@@ -244,8 +244,8 @@ class Py5Renderer(Sketch):
         self.maxValue = 0
         self.minCoord = +100000
         self.maxCoord = -100000        
-        for allStats in [self.violingSelStats, self.violingExlStats]:
-            for stats in allStats:
+        for all_stats in [self.violingSelStats, self.violingExlStats]:
+            for stats in all_stats:
                 self.minCoord = min(self.minCoord, stats['coords'].min())
                 self.maxCoord = max(self.maxCoord, stats['coords'].max())                
                 self.maxValue = max(self.maxValue, stats['vals'].max())
@@ -266,16 +266,16 @@ class Py5Renderer(Sketch):
             if self.data.sparse:
                 color_grad = self.data.expr[:, self.selGene].toarray().reshape(-1)
             else:
-                color_grad = self.data.expr[:, self.selGene]
-            minGeneExp = self.data.minGeneExp
-            maxGeneExp = self.data.maxGeneExp           
-            color_grad -= minGeneExp
-            color_grad /= (maxGeneExp-minGeneExp)
+                color_grad = self.data.expr[:, self.selGene].copy()
+            min_expr = self.data.minGeneExp
+            max_expr = self.data.maxGeneExp
+            color_grad -= min_expr
+            color_grad /= (max_expr-min_expr)
             self.color_mode(self.HSB, 360, 100, 100)
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
                 cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
-                sh.set_fill(cl)            
+                sh.set_fill(cl)
             self.color_mode(self.RGB, 255, 255, 255)
 
     def showUMAPScatter(self):
