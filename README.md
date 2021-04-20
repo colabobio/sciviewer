@@ -20,7 +20,7 @@ This is an interactive viewer for Jupyter notebooks that allows users exploring 
 ```
  import sys
  sys.path.insert(0, '../sciviewer/')
- from sciviewer import sciviewer
+ from sciviewer import SCIViewer
   ```
 - Note, the above won't work if you don't remove the relative imports from the local .py files.
 

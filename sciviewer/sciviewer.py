@@ -76,6 +76,8 @@ class Py5Renderer(Sketch):
         self.violingSelStats = None
         self.violingExlStats = None
         self.maxValue = 0
+        self.minCoord = 0
+        self.maxCoord = 0
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -240,10 +242,13 @@ class Py5Renderer(Sketch):
         self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
 
         self.maxValue = 0
-        for stats in self.violingSelStats:
-            self.maxValue = max(self.maxValue, stats['vals'].max())
-        for stats in self.violingExlStats:
-            self.maxValue = max(self.maxValue, stats['vals'].max())
+        self.minCoord = +100000
+        self.maxCoord = -100000        
+        for all_stats in [self.violingSelStats, self.violingExlStats]:
+            for stats in all_stats:
+                self.minCoord = min(self.minCoord, stats['coords'].min())
+                self.maxCoord = max(self.maxCoord, stats['coords'].max())                
+                self.maxValue = max(self.maxValue, stats['vals'].max())
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -261,16 +266,16 @@ class Py5Renderer(Sketch):
             if self.data.sparse:
                 color_grad = self.data.expr[:, self.selGene].toarray().reshape(-1)
             else:
-                color_grad = self.data.expr[:, self.selGene]
-            minGeneExp = self.data.minGeneExp
-            maxGeneExp = self.data.maxGeneExp           
-            color_grad -= minGeneExp
-            color_grad /= (maxGeneExp-minGeneExp)
+                color_grad = self.data.expr[:, self.selGene].copy()
+            min_expr = self.data.minGeneExp
+            max_expr = self.data.maxGeneExp
+            color_grad -= min_expr
+            color_grad /= (max_expr-min_expr)
             self.color_mode(self.HSB, 360, 100, 100)
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
-                cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
-                sh.set_fill(cl)            
+                cl = self.color(color_grad[idx] * 126 + (1 - color_grad[idx]) * 233, 85, 95, 80)
+                sh.set_fill(cl)
             self.color_mode(self.RGB, 255, 255, 255)
 
     def showUMAPScatter(self):
@@ -314,7 +319,7 @@ class Py5Renderer(Sketch):
             for i in range(0, 20):
                 f = self.remap(i, 0, 19, 0, 1)
                 self.color_mode(self.HSB, 360, 100, 100)
-                self.fill((1 - f) * 170 + f * 233, 74, 93, 80)
+                self.fill(f * 126 + (1 - f) * 233, 85, 95, 80)
                 self.color_mode(self.RGB, 255, 255, 255)
                 x = self.remap(f, 0, 1, x00 + 20, x00 + 120)
                 self.rect(x, y00 + 20, 100.0/19, 30)
@@ -393,7 +398,7 @@ class Py5Renderer(Sketch):
             self.no_stroke()
             self.begin_shape(self.QUAD_STRIP)
             for nx, ny in zip(stats['vals'], stats['coords']):
-                y = self.remap(ny, 0, 1, y0 + h, y0)
+                y = self.remap(ny, self.minCoord, self.maxCoord, y0 + h, y0)
                 cx = x0 + w/2
                 self.vertex(cx - scalef * nx, y)
                 self.vertex(cx + scalef * nx, y)
@@ -491,7 +496,7 @@ class SCIViewer():
 
         self.selected_cells = []
         self.significant_genes = None
-        self.sortedGenes = None
+        self.sortedGenes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = None
         
