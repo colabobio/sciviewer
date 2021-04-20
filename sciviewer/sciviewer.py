@@ -76,6 +76,8 @@ class Py5Renderer(Sketch):
         self.violingSelStats = None
         self.violingExlStats = None
         self.maxValue = 0
+        self.minCoord = 0
+        self.maxCoord = 0
     
     def settings(self):
         self.size(1600, 800, self.P2D)
@@ -240,10 +242,13 @@ class Py5Renderer(Sketch):
         self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
 
         self.maxValue = 0
-        for stats in self.violingSelStats:
-            self.maxValue = max(self.maxValue, stats['vals'].max())
-        for stats in self.violingExlStats:
-            self.maxValue = max(self.maxValue, stats['vals'].max())
+        self.minCoord = +100000
+        self.maxCoord = -100000        
+        for allStats in [self.violingSelStats, self.violingExlStats]:
+            for stats in allStats:
+                self.minCoord = min(self.minCoord, stats['coords'].min())
+                self.maxCoord = max(self.maxCoord, stats['coords'].max())                
+                self.maxValue = max(self.maxValue, stats['vals'].max())
 
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
@@ -393,7 +398,7 @@ class Py5Renderer(Sketch):
             self.no_stroke()
             self.begin_shape(self.QUAD_STRIP)
             for nx, ny in zip(stats['vals'], stats['coords']):
-                y = self.remap(ny, 0, 1, y0 + h, y0)
+                y = self.remap(ny, self.minCoord, self.maxCoord, y0 + h, y0)
                 cx = x0 + w/2
                 self.vertex(cx - scalef * nx, y)
                 self.vertex(cx + scalef * nx, y)
@@ -491,7 +496,7 @@ class SCIViewer():
 
         self.selected_cells = []
         self.significant_genes = None
-        self.sortedGenes = None
+        self.sortedGenes = []
         self.selected_gene_name = ''
         self.selected_gene_cell_data = None
         
