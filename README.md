@@ -1,6 +1,6 @@
 # Single Cell Interactive Viewer (sciviewer)
 
-This is an interactive viewer for 2D embeddings such as [UMAP](https://umap-learn.readthedocs.io/en/latest/) or [tSNE](https://lvdmaaten.github.io/tsne/) of high dimensional single-cell RNA-seq data. The user can select cells in the 2D plane and the viewer will calculate the differential expression between the selected and the unselected cells. Alternatively, the user can select a group of cells and a direction and the viewer will identify the genes with the greatest variation (Pearson correlation) along that direction. See snapshots of how this works below as well as the examples included in this repository (a small example of [3000 PBMCs](./examples/sciviewer_example_3K_PBMC.ipynb) and a larger one of [50,000 circulating T-cells](./examples/sciviewer_example_50K_Tcell.ipynb).
+This is an interactive viewer for 2D embeddings such as [UMAP](https://umap-learn.readthedocs.io/en/latest/) or [tSNE](https://lvdmaaten.github.io/tsne/) of high dimensional single-cell RNA-seq data. The user can select cells in the 2D plane and the viewer will calculate the differential expression between the selected and the unselected cells. Alternatively, the user can select a group of cells and a direction and the viewer will identify the genes with the greatest variation (Pearson correlation) along that direction. See snapshots of how this works below as well as the examples included in this repository (a small example of [3000 PBMCs](./examples/sciviewer_example_3K_PBMC.ipynb) and a larger one of [50,000 circulating T-cells](./examples/sciviewer_example_50K_Tcell.ipynb)).
 
 ## Installation
 
@@ -9,14 +9,14 @@ The main requirement for sciviewer is [py5](http://py5.ixora.io/install/) which 
 1. Prepare and activate the conda environment containing dependencies for py5:
 
 ```
- - conda env create -n sciviewer -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml
- - conda activate sciviewer
+conda env create -n sciviewer -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml
+conda activate sciviewer
 ```
 Alternatively, if you want to append the needed dependencies to an existing conda environment, instead of creating a new one, you can do the following:
 
 ```
- - conda env update -n your_existing_environment -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml
- - conda activate your_existing_environment
+conda env update -n your_existing_environment -f https://raw.githubusercontent.com/colabobio/sciviewer/master/sciviewer-env.yml
+conda activate your_existing_environment
 ```
 
 2. Next, install the sciviewer package using pip:
