@@ -274,7 +274,7 @@ class Py5Renderer(Sketch):
             self.color_mode(self.HSB, 360, 100, 100)
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
-                cl = self.color((1 - color_grad[idx]) * 170 + color_grad[idx] * 233, 74, 93, 80)
+                cl = self.color(color_grad[idx] * 126 + (1 - color_grad[idx]) * 233, 85, 95, 80)
                 sh.set_fill(cl)
             self.color_mode(self.RGB, 255, 255, 255)
 
@@ -319,7 +319,7 @@ class Py5Renderer(Sketch):
             for i in range(0, 20):
                 f = self.remap(i, 0, 19, 0, 1)
                 self.color_mode(self.HSB, 360, 100, 100)
-                self.fill((1 - f) * 170 + f * 233, 74, 93, 80)
+                self.fill(f * 126 + (1 - f) * 233, 85, 95, 80)
                 self.color_mode(self.RGB, 255, 255, 255)
                 x = self.remap(f, 0, 1, x00 + 20, x00 + 120)
                 self.rect(x, y00 + 20, 100.0/19, 30)
