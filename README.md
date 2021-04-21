@@ -41,15 +41,9 @@ svobj = SCIViewer(umap, expr)
 svobj.explore_data()
 ```
 
-Running the code above will cause the visualizer to appear. The data can then be explored as demonstrated below
+Running the code above will cause the visualizer to appear. The data can then be explored as demonstrated with the tutorial video below
 
-
-
-
-<iframe width="560" height="315" src="https://www.youtube.com/embed/eUrQWPrLkDM" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-
-
-
+[![Watch the video](https://img.youtube.com/vi/eUrQWPrLkDM/maxresdefault.jpg)](https://www.youtube.com/watch?v=eUrQWPrLkDM)
 
 ## Some key usage points:
  - The expression data can be provided as a Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
