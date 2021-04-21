@@ -31,6 +31,12 @@ To uninstall, use:
 pip uninstall sciviewer
 ```
 
+3. Now launch jupyter from within the activated conda environment and you are good to go.
+
+```
+jupyter lab
+```
+
 ## Quick start
 
 Sciviewer is executed from a Jupyter notebook such as in the examples directory. It is run by initializing a SCIViewer object with the 2D embedding (# cells X 2) and the expression data (# cells X # genes) and then running the explore_data method. E.g.
