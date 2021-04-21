@@ -49,7 +49,7 @@ svobj.explore_data()
 
 Running the code above will cause the visualizer to appear. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
 
-[![Watch the video](https://img.youtube.com/vi/eUrQWPrLkDM/maxresdefault.jpg)](https://www.youtube.com/watch?v=eUrQWPrLkDM)
+[![Watch the video](https://img.youtube.com/vi/YgvMmvgFFE0/maxresdefault.jpg)](https://youtu.be/YgvMmvgFFE0)
 
 ## Some key usage points:
  - The expression data can be provided as a Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
