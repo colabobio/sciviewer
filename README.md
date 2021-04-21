@@ -41,7 +41,7 @@ svobj = SCIViewer(umap, expr)
 svobj.explore_data()
 ```
 
-Running the code above will cause the visualizer to appear. The data can then be explored as demonstrated with the tutorial video below
+Running the code above will cause the visualizer to appear. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
 
 [![Watch the video](https://img.youtube.com/vi/eUrQWPrLkDM/maxresdefault.jpg)](https://www.youtube.com/watch?v=eUrQWPrLkDM)
 
