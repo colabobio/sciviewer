@@ -9,6 +9,8 @@ import py5
 from py5 import Sketch
 from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
 from .utils import angle_between
+#from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
+#from utils import angle_between
 
 import time
 
@@ -587,6 +589,7 @@ class SCIViewer():
         return(self.sortedGenes)
 
     def calculateGeneCorrelations(self, indices):
+        print('fo')
         print("Selected", len(indices), "cells")
 
         print("Calculating correlations...") 
@@ -597,8 +600,12 @@ class SCIViewer():
             vproj.append(self.cells[i].proj)
             
         dexpr = self.expr[indices, :]
+        ## only run correlation on genes with non-zero counts in the selected cell subset
+        hascounts = np.array(dexpr.sum(axis=0)).reshape(-1)>0
+        dexpr = dexpr[:,hascounts]
         vproj = np.array(vproj)
         n = vproj.size
+        geneNames = np.array(self.geneNames)[hascounts]
         if self.sparse:
             # based on https://www.javaer101.com/en/article/18344934.html
             yy = vproj - vproj.mean()
@@ -616,15 +623,22 @@ class SCIViewer():
         T = -1*np.abs(rs * np.sqrt(n-2))/np.sqrt(1 - (rs**2))
         ps = ss.t.cdf(T, df=n-2)*2
 
-        self.results_proj_correlation = pd.DataFrame([rs, ps], columns=self.geneNames,
+        # obtain Pandas DataFrame with P-values / Corelations with nans for genes not tested
+        self.results_proj_correlation = pd.DataFrame([rs, ps], columns=geneNames,
                                                            index=['R', 'P']).T
-
-        for (i,g) in enumerate(self.geneNames):
-            if (self.pearsonsThreshold <= abs(rs[i])) and (ps[i] <= self.pvalueThreshold):
-                gene = Gene(g, i, rs[i], ps[i])
-                self.sortedGenes.append(gene)
+        nullvalues = pd.DataFrame(index=np.array(self.geneNames)[~hascounts], columns=['R', 'P'])
+        self.results_proj_correlation = pd.concat([self.results_proj_correlation, nullvalues], axis=0)
+        self.results_proj_correlation = self.results_proj_correlation.loc[self.geneNames, :]
         
+        for (i,g) in enumerate(self.geneNames):
+            r = self.results_proj_correlation.at[g, 'R']
+            p = self.results_proj_correlation.at[g, 'P']
+            if (self.pearsonsThreshold <= abs(r)) and (p <= self.pvalueThreshold):
+                gene = Gene(g, i, r, p)
+                self.sortedGenes.append(gene)
+
         self.sortedGenes.sort(key=lambda x: x.r, reverse=True)
+
         return(self.sortedGenes)
 
     def calculateGeneMinMax(self, indices, selGene):
