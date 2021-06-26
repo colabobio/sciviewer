@@ -62,7 +62,7 @@ class Cell:
         return sh        
        
 class Py5Renderer(Sketch):
-    def __init__(self, dataobj):
+    def __init__(self, dataobj, width=1600, height=800):
         super().__init__()
         self.data = dataobj
         self.indices = []
@@ -80,9 +80,11 @@ class Py5Renderer(Sketch):
         self.maxValue = 0
         self.minCoord = 0
         self.maxCoord = 0
+        self.default_width = width
+        self.default_height = height
     
     def settings(self):
-        self.size(1600, 800, self.P2D)
+        self.size(self.default_width, self.default_height, self.P2D)
 
     def setup(self):
         self.text_align(self.CENTER, self.CENTER)
@@ -460,12 +462,8 @@ class SCIViewer():
     
     def __init__(self, umap, expr, gene_names=None, cell_names=None,
                 pearsonsThreshold=0.1, tThreshold=2.0, pvalueThreshold=0.05,
-                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100):
-
-
-        
-        
-        
+                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100,
+                width=1600, height=800):       
       
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
         elif type(umap) is np.ndarray: self.umap = umap
@@ -519,7 +517,7 @@ class SCIViewer():
         min2 = self.umap[:,1].min()
         max2 = self.umap[:,1].max()
 
-        self.renderer = Py5Renderer(self)
+        self.renderer = Py5Renderer(self, width=width, height=height)
         
         start = time.time()
         cells = []
