@@ -87,6 +87,10 @@ class Py5Renderer(Sketch):
         self.size(self.default_width, self.default_height, self.P2D)
 
     def setup(self):
+        surface = self.get_surface()
+        surface.set_resizable(True)
+        surface.set_title("SCIViewer")
+
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()
         self.initUMAPshape()
