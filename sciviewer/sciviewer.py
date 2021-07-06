@@ -168,23 +168,23 @@ class Py5Renderer(Sketch):
 
     def mouse_pressed(self):
         if self.mouse_x < self.width/2:
-            self.selector.press(self.mouse_x, self.mouse_y)
+            self.selector.press(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.scrollList.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
             self.scrollList.press()
 
     def mouse_dragged(self):
         if self.mouse_x < self.width/2:
-            self.selector.drag(self.mouse_x, self.mouse_y)
+            self.selector.drag(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.mouse_x < self.width/2 + 1.5 * GENE_WIDTH:
             self.scrollList.drag(self.mouse_x, self.pmouse_y, self.hscale, self.vscale)
 
     def mouse_moved(self):
         if self.mouse_x < self.width/2:
-            self.selector.move(self.mouse_x, self.mouse_y)
+            self.selector.move(self.mouse_x, self.mouse_y, self.width, self.height)
 
     def mouse_released(self):
         if self.mouse_x < self.width/2:
-            self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
+            self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
             self.data.export_data(self.indices, self.selGene)
         else: 
@@ -199,7 +199,7 @@ class Py5Renderer(Sketch):
             print("Selected gene", self.data.geneNames[self.selGene])
 
     def initUI(self):
-        self.selector = Selector()
+        self.selector = Selector(self.width, self.height)
         self.scrollList = ScrollableList(DEF_WIDTH/2, 0, GENE_WIDTH, DEF_HEIGHT)
 
         w = 200

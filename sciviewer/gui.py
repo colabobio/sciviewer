@@ -194,14 +194,14 @@ class ToggleButton:
     def contains(self, mx, my, sx, sy):
         inside = sx * self.x <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if inside:
-            if sx * self.x <= mx and sx * (mx <= self.x + self.w/2):
+            if sx * self.x <= mx and mx <= sx * (self.x + self.w/2):
                 self.state = 1
             else:
                 self.state = 2
         return inside
 
 class Selector():
-    def __init__(self):
+    def __init__(self, w, h):
         self.state = CLOSED
         self.spx0 = 0
         self.spy0 = 0
@@ -218,6 +218,8 @@ class Selector():
         self.y0 = 0
         self.w = 0
         self.h = 0
+        self.screen_width = w
+        self.screen_height = h
         self.tmat = np.array([[0.0, 0.0, 0.0],
                               [0.0, 0.0, 0.0]])
 
@@ -227,6 +229,8 @@ class Selector():
         
         p5obj.push_matrix()
         p5obj.scale(1/p5obj.hscale, 1/p5obj.vscale)
+
+        p5obj.scale(p5obj.width/self.screen_width, p5obj.height/self.screen_height)
 
         if self.state == SET_SPINE:
             p5obj.stroke(240, 118, 104)
@@ -302,7 +306,9 @@ class Selector():
         py5obj.rect(0, -self.h/2, self.w, self.h)
         py5obj.pop_matrix()
         
-    def press(self, x, y):
+    def press(self, x, y, w, h):
+        self.screen_width = w
+        self.screen_height = h
         if self.state == CLOSED or self.state == COMPLETED:
             self.state = SET_SPINE
         elif self.state == SET_SPINE:
@@ -314,18 +320,24 @@ class Selector():
             self.angle = 0
             self.w = self.h = 0
   
-    def drag(self, x, y):
+    def drag(self, x, y, w, h):
         if self.state == SET_SPINE:
+            self.screen_width = w
+            self.screen_height = h            
             self.spx1 = x
-            self.spy1 = y      
+            self.spy1 = y  
 
-    def move(self, x, y):
+    def move(self, x, y, w, h):
         if self.state == SET_WIDTH:
+            self.screen_width = w
+            self.screen_height = h            
             self.updateBox(x, y)
 
-    def release(self, x, y):
+    def release(self, x, y, w, h):
         requestSelection = False
         if self.state == SET_SPINE:
+            self.screen_width = w
+            self.screen_height = h
             self.spx1 = x
             self.spy1 = y
             if self.spx1 != self.spx0 or self.spy1 != self.spy0:
@@ -335,6 +347,8 @@ class Selector():
             else:
                 self.state = CLOSED
         elif self.state == SET_WIDTH:
+            self.screen_width = w
+            self.screen_height = h
             self.updateBox(x, y)
             self.state = COMPLETED
             requestSelection = True
