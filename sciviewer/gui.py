@@ -39,9 +39,9 @@ class ScrollableList:
             displaygenes += genes[(-1*maxneggenes):]
         else:
             displaygenes += genes[(-1*numneg):]
-
+        
         self.genes = displaygenes
-        toth = (ITEM_HEIGHT + ITEM_SPACE) * len(self.genes)
+        toth = ITEM_HEIGHT * len(self.genes)
         self.visible = self.h < toth
          
         self.scrollbar = ScrollBar(0.9 * self.w, 0.1 * self.w, 0.1 * self.h, len(self.genes))
@@ -128,7 +128,7 @@ class ScrollBar:
         y0 = y / sy
         if y0 <= ymax:
             self.posY = y0
-            self.translateY = -(y0 / ymax) * self.numItems
+            self.translateY = -(y0 / ymax) * (ITEM_SPACE + ITEM_HEIGHT * self.numItems - th)
 
     def display(self, py5obj):        
         x = self.posX
