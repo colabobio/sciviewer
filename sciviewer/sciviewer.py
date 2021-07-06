@@ -356,12 +356,12 @@ class Py5Renderer(Sketch):
         x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
         w = DEF_WIDTH - x0 - MARGIN
         h = w
-        y0 = (DEF_HEIGHT - h) / 2
-
-        self.shape(self.scatterShape)
+        y0 = (DEF_HEIGHT - h) / 2        
 
         self.fill(100)
         self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
+
+        self.shape(self.scatterShape)
 
         self.stroke_weight(2)
         self.stroke(120)
@@ -386,6 +386,9 @@ class Py5Renderer(Sketch):
         w = DEF_WIDTH - x0 - MARGIN
         h = w
         y0 = (DEF_HEIGHT - h) / 2
+
+        self.fill(100)
+        self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
 
         self.no_stroke()
         self.fill(self.color(240, 118, 104, 80))
@@ -426,8 +429,8 @@ class Py5Renderer(Sketch):
         x0 = 25
         y0 = 25
         w = DEF_WIDTH/2 - MARGIN
-        h = DEF_HEIGHT - MARGIN       
-        self.clip(x0 - 2.5, y0 - 2.5, w + 5, h + 5)
+        h = DEF_HEIGHT - MARGIN
+        self.clip(self.hscale * (x0 - 2.5), self.vscale * (y0 - 2.5), self.hscale * (w + 5), self.vscale * (h + 5))
 
     def delClip(self):
         self.no_clip()        

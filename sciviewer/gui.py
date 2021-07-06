@@ -87,14 +87,14 @@ class ScrollableList:
                 self.scrollbar.update(my, sy)
 
     def contains(self, mx, my, sx, sy):
-         return sx * (self.x + 0.9 * self.w) <= mx and mx <= sy * (self.x + self.w)
+         return sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w)
 
     def release(self, mx, my, sx, sy):
         insideItemArea = sx * (self.x + 20) <= mx and mx <= sx * (self.x + 0.85 * self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         insideDragArea = sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if not self.dragged and insideItemArea:
             l = my - self.scrollbar.translateY
-            newItem = int(l / itemHeight)
+            newItem = int(l / (sy * itemHeight))
             if self.selItem == newItem:
                 # self.selItem = -1 # deselect
                 pass
@@ -125,7 +125,7 @@ class ScrollBar:
     def update(self, y, sy):
         if y <= sy * self.maxy:
             self.posY = y
-            ty = float(self.totalHeight - self.listHeight) * (y / self.maxy)
+            ty = sy * float(self.totalHeight - self.listHeight) * (y / self.maxy)
             self.translateY = -max(0, ty)
 
     def display(self, py5obj):        
