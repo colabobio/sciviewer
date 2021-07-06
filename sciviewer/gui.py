@@ -129,8 +129,6 @@ class ScrollBar:
         if y0 <= ymax:
             self.posY = y0
             self.translateY = -(y0 / ymax) * self.numItems
-        else:
-            print(y, ymax)
 
     def display(self, py5obj):        
         x = self.posX
@@ -308,6 +306,10 @@ class Selector():
         py5obj.translate(self.x0, self.y0)
         py5obj.rotate(self.angle)
         py5obj.rect(0, -self.h/2, self.w, self.h)
+        py5obj.stroke(240, 118, 104, 120)
+        py5obj.line(0, 0, self.w, 0)
+        py5obj.line(0.9 * self.w, -self.h/2, self.w, 0)
+        py5obj.line(0.9 * self.w, +self.h/2, self.w, 0)
         py5obj.pop_matrix()
         
     def press(self, x, y, w, h):

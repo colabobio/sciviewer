@@ -96,13 +96,15 @@ class Py5Renderer(Sketch):
         surface.set_resizable(True)
         surface.set_title("SCIViewer")
 
+        self.background(255)
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()
         self.initUMAPshape()
         self.text_font(self.create_font("Helvetica", FONT_SIZE))
 
-    def draw(self):        
+    def draw(self):
         self.background(255)
+
         self.viewer_width = self.width
         self.viewer_height = self.height        
         self.hscale = self.viewer_width / DEF_WIDTH
