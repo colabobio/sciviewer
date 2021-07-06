@@ -7,6 +7,7 @@ import scipy.sparse as sp
 import sys
 import py5
 from py5 import Sketch
+import anndata
 from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
 from .utils import angle_between
 #from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
@@ -448,18 +449,20 @@ class SCIViewer():
     
     Required arguments
     ------------------
-    umap (pandas.DataFrame, numpy.ndarray) - Nx2 matrix of cells by 2D embedding coordinates (can be any embedding including tsne, umap...)
-    expr - (pandas.DataFrame, numpy.ndarray, scipy.sparse.csc_matrix) - NxG matrix of cells by genes. The method was tested on log2(TP10K) data but other similar normalizations should work as well. If a Pandas DataFrame is provided, the indeces are used as cell names and the columns are used as gene names. Otherwise, these can be provided as the gene_names and cell_names optional arguments. If a csc_matrix is provided, all of the computations will exploit the sparsity of the data which can provide a substantial (orders of magnitude) speedup for large datasets.
+    expr - (anndata.AnnData, pandas.DataFrame, numpy.ndarray, scipy.sparse.csc_matrix) - Either an NxG matrix of cells by genes or a Scanpy AnnData object containing an NxG matrix in the expr.X or expr.raw.X fields. Currently only supports expression data from Scanpy in numpy.ndarray (non-sparse) or sparse/csc_matrix format so please convert the attribute accordingly if it is using a different sprase format. The method was tested on log2(TP10K) data but other similar normalizations should work as well. If a Pandas DataFrame is provided, the indeces are used as cell names and the columns are used as gene names. If an AnnData is provided cell names are obtained from the index of the obs attribute and gene names are obtained from the index of the var attribute. Otherwise, these can be provided as the gene_names and cell_names optional arguments. If a csc_matrix is provided or the provided AnnData data matrix is sparse, all of the computations will exploit the sparsity of the data which can provide a substantial (orders of magnitude) speedup for large datasets.
     
     Optional arguments:
     ------------------
+    umap (pandas.DataFrame, numpy.ndarray) - Nx2 matrix of cells by 2D embedding coordinates (can be any embedding including tsne, umap...). REQUIRED if expr is not a scanpy AnnData object, or if it doesn't include an embedding in the obsm attribute.
     gene_names (list of strings) -- gene names. (default: inferred from DataFrame columns or ['0', '1' ...'G'])
-    cell_names -- (list of strings) -- cell names. (default: inferred from DataFrame indeces or ['0', '1' ...'N'])
+    cell_names (list of strings) -- cell names. (default: inferred from DataFrame indeces or ['0', '1' ...'N'])
+    embedding_name (str) -- Only used if an AnnData provided for expr. Key value for obsm specifying embedding to use. (default: 'X_umap') 
     pearsonsThreshold (float)-- Pearson correlation threshold (absolute value) for genes to display in the scroll list for the directional analysis (default: 0.1)
     tThreshold (float) -- T-statistic association threshold (absolute value) for genes to display in the scroll list for the differential analysis (default: 2.0)
     pvalueThreshold (float) -- P-value  threshold (absolute value) for genes to display in the scroll list for both differential and directional analysis (default: 0.05)
     maxdisplaygenes_pos (int) -- maximum # of positively associated genes to show in the scroll list (by either directional or differential analysis) (default: 100)
     maxdisplaygenes_neg (int) -- maximum # of negatively associated genes to show in the scroll list (by either directional or differential analysis)  (default: 100)
+    use_raw (boolean) -- if expr is AnnData, indicates to use .raw.X rather than .X for expression matrix (default: False)
     
     Attributes
     ----------
@@ -479,11 +482,28 @@ class SCIViewer():
         includes the gene expression and projection coordinates for the selected cells at the time the 'Export and close' button is pressed.
     """
     
-    def __init__(self, umap, expr, gene_names=None, cell_names=None,
-                pearsonsThreshold=0.1, tThreshold=2.0, pvalueThreshold=0.05,
-                maxdisplaygenes_pos=100, maxdisplaygenes_neg=100,
-                width=1600, height=800):       
+    def __init__(self, expr, umap=None, gene_names=None, cell_names=None,
+                embedding_name='X_umap', pearsonsThreshold=0.1, tThreshold=2.0,
+                pvalueThreshold=0.05, maxdisplaygenes_pos=100, maxdisplaygenes_neg=100,
+                width=1600, height=800, use_raw=False):       
       
+        if type(expr) is anndata._core.anndata.AnnData:
+            if umap is None:
+                umap = expr.obsm[embedding_name]
+            
+            if (gene_names is None):
+                if not use_raw:
+                    gene_names = expr.var.index.tolist()
+                else:
+                    gene_names = expr.raw.var.index.tolist()
+                
+            if (cell_names is None):
+                cell_names = expr.obs.index.tolist()
+                
+            self.anndata_obj = expr
+            if not use_raw: expr = expr.X
+            else: expr = expr.raw.X
+        
         if type(umap) is pd.core.frame.DataFrame: self.umap = umap.values
         elif type(umap) is np.ndarray: self.umap = umap
         else: sys.exit('umap must be a Pandas DataFrame or Numpy ndarray')
@@ -492,7 +512,7 @@ class SCIViewer():
             self.expr = expr.values
             self.geneNames = expr.columns.tolist()
             self.cellNames = expr.index.tolist()
-        elif type(expr) in [np.ndarray, sp.csc.csc_matrix]:
+        elif type(expr) in [np.ndarray, sp.csc.csc_matrix, sp.csr.csr_matrix]:
             self.expr = expr
                         
             if gene_names is None: self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
@@ -502,7 +522,7 @@ class SCIViewer():
             else: self.cellNames = cell_names
             
         else:
-            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, or sp.csc_matrix')
+            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, sp.csc_matrix, or sp.csc.csr_matrix')
         end = time.time()
 
         if self.umap.shape[0] != self.expr.shape[0]:
@@ -606,7 +626,6 @@ class SCIViewer():
         return(self.sortedGenes)
 
     def calculateGeneCorrelations(self, indices):
-        print('fo')
         print("Selected", len(indices), "cells")
 
         print("Calculating correlations...") 
