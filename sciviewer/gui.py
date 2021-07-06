@@ -8,8 +8,8 @@ SET_SPINE = 1
 SET_WIDTH = 2
 COMPLETED = 3
 
-itemHeight = 50
-itemSpace = 10
+ITEM_HEIGHT = 50
+ITEM_SPACE = 10
 
 class ScrollableList:    
     def __init__(self, x, y, w, h):
@@ -41,9 +41,10 @@ class ScrollableList:
             displaygenes += genes[(-1*numneg):]
 
         self.genes = displaygenes
-        toth = itemHeight * (len(displaygenes) + 3)
-        self.visible = self.h < toth 
-        self.scrollbar = ScrollBar(toth, 0.9 * self.w, 0.1 * self.w, self.h)
+        toth = (ITEM_HEIGHT + ITEM_SPACE) * len(self.genes)
+        self.visible = self.h < toth
+         
+        self.scrollbar = ScrollBar(0.9 * self.w, 0.1 * self.w, 0.1 * self.h, len(self.genes))
         self.selItem = -1
   
     def display(self, py5obj):
@@ -51,15 +52,16 @@ class ScrollableList:
     
         py5obj.push_matrix()
         py5obj.translate(self.x, self.y)
+
         py5obj.push_matrix()
         py5obj.translate(0, self.scrollbar.translateY)
         py5obj.no_stroke()
         for i in range(0, len(self.genes)):
             py5obj.fill(210)
             rx = 20
-            ry = i * itemHeight + itemSpace
+            ry = i * ITEM_HEIGHT + ITEM_SPACE
             rw = 0.85 * self.w - 20
-            rh = itemHeight - itemSpace
+            rh = ITEM_HEIGHT - ITEM_SPACE
             if self.selItem == i:
                 py5obj.stroke(240, 118, 104)
             else:
@@ -69,12 +71,13 @@ class ScrollableList:
             gene = self.genes[i]
             text = gene.name + " " + "{:1.2f}".format(gene.r)
             py5obj.text(text, rx, ry, rw, rh)
-
         py5obj.pop_matrix()
+
         py5obj.fill(220)
         py5obj.no_stroke()
         py5obj.rect(0.9 * self.w, 0, 0.1 * self.w, self.h)
-        self.scrollbar.display(py5obj)        
+        self.scrollbar.display(py5obj)
+
         py5obj.pop_matrix()
   
     def press(self):
@@ -84,7 +87,7 @@ class ScrollableList:
         if self.pressed:
             self.dragged = True
             if sy * self.y <= my and my <= sy * (self.y + self.h):
-                self.scrollbar.update(my, sy)
+                self.scrollbar.update(my, self.h, sy)
 
     def contains(self, mx, my, sx, sy):
          return sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w)
@@ -93,15 +96,15 @@ class ScrollableList:
         insideItemArea = sx * (self.x + 20) <= mx and mx <= sx * (self.x + 0.85 * self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         insideDragArea = sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if not self.dragged and insideItemArea:
-            l = my - self.scrollbar.translateY
-            newItem = int(l / (sy * itemHeight))
+            l = my/sy - self.scrollbar.translateY
+            newItem = int(l / ITEM_HEIGHT)
             if self.selItem == newItem:
                 # self.selItem = -1 # deselect
                 pass
             else:
                 self.selItem = newItem
         elif self.pressed and insideDragArea:
-            self.scrollbar.update(my, sy)
+            self.scrollbar.update(my, self.h, sy)
 
         self.pressed = False
         self.dragged = False
@@ -112,27 +115,28 @@ class ScrollableList:
             return -1
 
 class ScrollBar:    
-    def __init__(self, th, x0, bw, lh):
-        self.totalHeight = th
-        self.barWidth = bw
-        self.translateY = 0
+    def __init__(self, x0, bw, bh, n):
         self.posX = x0
         self.posY = 0
-        self.listHeight = lh
-        self.frac = self.listHeight / self.totalHeight
-        self.maxy = (1 - self.frac) * self.listHeight
+        self.barWidth = bw
+        self.barHeight = bh
+        self.numItems = n
+        self.translateY = 0
 
-    def update(self, y, sy):
-        if y <= sy * self.maxy:
-            self.posY = y
-            ty = sy * float(self.totalHeight - self.listHeight) * (y / self.maxy)
-            self.translateY = -max(0, ty)
+    def update(self, y, th, sy):        
+        ymax = th - self.barHeight
+        y0 = y / sy
+        if y0 <= ymax:
+            self.posY = y0
+            self.translateY = -(y0 / ymax) * self.numItems
+        else:
+            print(y, ymax)
 
     def display(self, py5obj):        
         x = self.posX
         y = self.posY
         w = self.barWidth
-        h = self.frac * self.listHeight
+        h = self.barHeight
         py5obj.push_style()
         py5obj.no_stroke()
         py5obj.fill(150)
