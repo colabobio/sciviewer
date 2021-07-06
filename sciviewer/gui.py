@@ -80,28 +80,28 @@ class ScrollableList:
     def press(self):
         self.pressed = True
 
-    def drag(self, mx, my):
-        if self.pressed:            
+    def drag(self, mx, my, sx, sy):
+        if self.pressed:
             self.dragged = True
-            if self.y <= my and my <= self.y + self.h:
-                self.scrollbar.update(my)
+            if sy * self.y <= my and my <= sy * (self.y + self.h):
+                self.scrollbar.update(my, sy)
 
-    def contains(self, mx, my):
-         return self.x + 0.9 * self.w <= mx and mx <= self.x + self.w
+    def contains(self, mx, my, sx, sy):
+         return sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w)
 
-    def release(self, mx, my):
-        insideItemArea = self.x + 20 <= mx and mx <= self.x + 0.85 * self.w and self.y <= my and my <= self.y + self.h
-        insideDragArea = self.x + 0.9 * self.w <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def release(self, mx, my, sx, sy):
+        insideItemArea = sx * (self.x + 20) <= mx and mx <= sx * (self.x + 0.85 * self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
+        insideDragArea = sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if not self.dragged and insideItemArea:
             l = my - self.scrollbar.translateY
-            newItem = int(l / itemHeight)
+            newItem = int(l / (sy * itemHeight))
             if self.selItem == newItem:
                 # self.selItem = -1 # deselect
                 pass
             else:
                 self.selItem = newItem
         elif self.pressed and insideDragArea:
-            self.scrollbar.update(my)
+            self.scrollbar.update(my, sy)
 
         self.pressed = False
         self.dragged = False
@@ -122,10 +122,10 @@ class ScrollBar:
         self.frac = self.listHeight / self.totalHeight
         self.maxy = (1 - self.frac) * self.listHeight
 
-    def update(self, y):
-        if y <= self.maxy:
+    def update(self, y, sy):
+        if y <= sy * self.maxy:
             self.posY = y
-            ty = float(self.totalHeight - self.listHeight) * (y / self.maxy)
+            ty = sy * float(self.totalHeight - self.listHeight) * (y / self.maxy)
             self.translateY = -max(0, ty)
 
     def display(self, py5obj):        
@@ -156,8 +156,8 @@ class Button:
         py5obj.fill(255)
         py5obj.text(self.label, self.x, self.y, self.w, self.h)
   
-    def contains(self, mx, my):
-        return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def contains(self, mx, my, sx, sy):
+        return sx * self.x <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
 
 
 class ToggleButton:
@@ -191,17 +191,17 @@ class ToggleButton:
         py5obj.fill(255)
         py5obj.text(self.label2, self.x + self.w/2, self.y, self.w/2, self.h)
 
-    def contains(self, mx, my):
-        inside = self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def contains(self, mx, my, sx, sy):
+        inside = sx * self.x <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if inside:
-            if self.x <= mx and mx <= self.x + self.w/2:
+            if sx * self.x <= mx and mx <= sx * (self.x + self.w/2):
                 self.state = 1
             else:
                 self.state = 2
         return inside
 
 class Selector():
-    def __init__(self):
+    def __init__(self, w, h):
         self.state = CLOSED
         self.spx0 = 0
         self.spy0 = 0
@@ -218,6 +218,8 @@ class Selector():
         self.y0 = 0
         self.w = 0
         self.h = 0
+        self.screen_width = w
+        self.screen_height = h
         self.tmat = np.array([[0.0, 0.0, 0.0],
                               [0.0, 0.0, 0.0]])
 
@@ -225,6 +227,11 @@ class Selector():
         if self.state == CLOSED: 
             return
         
+        p5obj.push_matrix()
+        p5obj.scale(1/p5obj.hscale, 1/p5obj.vscale)
+
+        p5obj.scale(p5obj.width/self.screen_width, p5obj.height/self.screen_height)
+
         if self.state == SET_SPINE:
             p5obj.stroke(240, 118, 104)
             p5obj.line(self.spx0, self.spy0, self.spx1, self.spy1)
@@ -236,6 +243,7 @@ class Selector():
         else:
             self.displayBox(p5obj)
     
+        p5obj.pop_matrix()
     
     def apply(self, p5obj, cell, sx0, sy0, sw, sh):
         sx = p5obj.remap(cell.umap1, 0, 1, sx0, sx0 + sw)
@@ -298,7 +306,9 @@ class Selector():
         py5obj.rect(0, -self.h/2, self.w, self.h)
         py5obj.pop_matrix()
         
-    def press(self, x, y):
+    def press(self, x, y, w, h):
+        self.screen_width = w
+        self.screen_height = h
         if self.state == CLOSED or self.state == COMPLETED:
             self.state = SET_SPINE
         elif self.state == SET_SPINE:
@@ -310,18 +320,24 @@ class Selector():
             self.angle = 0
             self.w = self.h = 0
   
-    def drag(self, x, y):
+    def drag(self, x, y, w, h):
         if self.state == SET_SPINE:
+            self.screen_width = w
+            self.screen_height = h            
             self.spx1 = x
-            self.spy1 = y      
+            self.spy1 = y  
 
-    def move(self, x, y):
+    def move(self, x, y, w, h):
         if self.state == SET_WIDTH:
+            self.screen_width = w
+            self.screen_height = h            
             self.updateBox(x, y)
 
-    def release(self, x, y):
+    def release(self, x, y, w, h):
         requestSelection = False
         if self.state == SET_SPINE:
+            self.screen_width = w
+            self.screen_height = h
             self.spx1 = x
             self.spy1 = y
             if self.spx1 != self.spx0 or self.spy1 != self.spy0:
@@ -331,6 +347,8 @@ class Selector():
             else:
                 self.state = CLOSED
         elif self.state == SET_WIDTH:
+            self.screen_width = w
+            self.screen_height = h
             self.updateBox(x, y)
             self.state = COMPLETED
             requestSelection = True

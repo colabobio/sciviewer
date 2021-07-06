@@ -18,6 +18,9 @@ SEL_COLOR = 1
 EXP_COLOR = 2
 RST_COLOR = 3
 
+DEF_WIDTH = 1600
+DEF_HEIGHT = 800
+
 GENE_WIDTH = 200
 MARGIN = 50
 PADDING = 50
@@ -62,7 +65,7 @@ class Cell:
         return sh        
        
 class Py5Renderer(Sketch):
-    def __init__(self, dataobj, width=1600, height=800):
+    def __init__(self, dataobj, width=DEF_WIDTH, height=DEF_HEIGHT):
         super().__init__()
         self.data = dataobj
         self.indices = []
@@ -80,13 +83,19 @@ class Py5Renderer(Sketch):
         self.maxValue = 0
         self.minCoord = 0
         self.maxCoord = 0
-        self.default_width = width
-        self.default_height = height
+        self.viewer_width = width
+        self.viewer_height = height
+        self.hscale = self.viewer_width / DEF_WIDTH
+        self.vscale = self.viewer_height / DEF_HEIGHT
     
     def settings(self):
-        self.size(self.default_width, self.default_height, self.P2D)
+        self.size(self.viewer_width, self.viewer_height, self.P2D)
 
     def setup(self):
+        surface = self.get_surface()
+        surface.set_resizable(True)
+        surface.set_title("SCIViewer")
+
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()
         self.initUMAPshape()
@@ -94,6 +103,11 @@ class Py5Renderer(Sketch):
 
     def draw(self):        
         self.background(255)
+        self.viewer_width = self.width
+        self.viewer_height = self.height        
+        self.hscale = self.viewer_width / DEF_WIDTH
+        self.vscale = self.viewer_height / DEF_HEIGHT
+        self.scale(self.hscale, self.vscale)
 
         if self.selectedGene:        
             self.data.calculateGeneMinMax(self.indices, self.selGene)
@@ -154,53 +168,53 @@ class Py5Renderer(Sketch):
 
     def mouse_pressed(self):
         if self.mouse_x < self.width/2:
-            self.selector.press(self.mouse_x, self.mouse_y)
-        elif self.scrollList.contains(self.mouse_x, self.mouse_y):
+            self.selector.press(self.mouse_x, self.mouse_y, self.width, self.height)
+        elif self.scrollList.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
             self.scrollList.press()
 
     def mouse_dragged(self):
         if self.mouse_x < self.width/2:
-            self.selector.drag(self.mouse_x, self.mouse_y)
+            self.selector.drag(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.mouse_x < self.width/2 + 1.5 * GENE_WIDTH:
-            self.scrollList.drag(self.mouse_x, self.pmouse_y)
+            self.scrollList.drag(self.mouse_x, self.pmouse_y, self.hscale, self.vscale)
 
     def mouse_moved(self):
         if self.mouse_x < self.width/2:
-            self.selector.move(self.mouse_x, self.mouse_y)
+            self.selector.move(self.mouse_x, self.mouse_y, self.width, self.height)
 
     def mouse_released(self):
         if self.mouse_x < self.width/2:
-            self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y)
-        elif self.exportBtn.contains(self.mouse_x, self.mouse_y):
+            self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y, self.width, self.height)
+        elif self.exportBtn.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
             self.data.export_data(self.indices, self.selGene)
         else: 
             pstate = self.modeBtn.state
-            if self.modeBtn.contains(self.mouse_x, self.mouse_y):
+            if self.modeBtn.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
                 self.modeChange = pstate != self.modeBtn.state
 
-        sel = self.scrollList.release(self.mouse_x, self.mouse_y)
+        sel = self.scrollList.release(self.mouse_x, self.mouse_y, self.hscale, self.vscale)
         if sel != -1 and sel != self.selGene:
             self.selGene = sel
             self.selectedGene = True
             print("Selected gene", self.data.geneNames[self.selGene])
 
     def initUI(self):
-        self.selector = Selector()
-        self.scrollList = ScrollableList(self.width/2, 0, GENE_WIDTH, self.height)
+        self.selector = Selector(self.width, self.height)
+        self.scrollList = ScrollableList(DEF_WIDTH/2, 0, GENE_WIDTH, DEF_HEIGHT)
 
         w = 200
-        x0 = self.width/2 + 100 + self.width/4 - w/2
-        self.exportBtn = Button(x0, self.height - 55, w, 30, "EXPORT & CLOSE")  
+        x0 = DEF_WIDTH/2 + 100 + DEF_WIDTH/4 - w/2
+        self.exportBtn = Button(x0, DEF_HEIGHT - 55, w, 30, "EXPORT & CLOSE")  
 
         w = 250
-        x0 = self.width/2 + 100 + self.width/4 - w/2        
+        x0 = DEF_WIDTH/2 + 100 + DEF_WIDTH/4 - w/2        
         self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
     def initUMAPshape(self):
         x0 = MARGIN/2 + PADDING
         y0 = MARGIN/2 + PADDING
-        w = self.width/2 - MARGIN - 2 * PADDING
-        h = self.height - MARGIN - 2 * PADDING
+        w = DEF_WIDTH/2 - MARGIN - 2 * PADDING
+        h = DEF_HEIGHT - MARGIN - 2 * PADDING
 
         self.umapShape = self.create_shape(self.GROUP)
         for cell in self.data.cells:
@@ -208,10 +222,10 @@ class Py5Renderer(Sketch):
             self.umapShape.add_child(sh)
 
     def initScatterShape(self):
-        x0 = self.width/2 + GENE_WIDTH + MARGIN
-        w = self.width - x0 - MARGIN
+        x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
+        w = DEF_WIDTH - x0 - MARGIN
         h = w
-        y0 = (self.height - h) / 2        
+        y0 = (DEF_HEIGHT - h) / 2        
         self.scatterShape = self.create_shape(self.GROUP)
         expr = self.data.expr[self.indices, self.selGene]
         if self.data.sparse:
@@ -285,16 +299,16 @@ class Py5Renderer(Sketch):
     def showUMAPScatter(self):
         x0 = MARGIN/2 + PADDING
         y0 = MARGIN/2 + PADDING
-        w = self.width/2 - MARGIN - 2 * PADDING
-        h = self.height - MARGIN - 2 * PADDING
+        w = DEF_WIDTH/2 - MARGIN - 2 * PADDING
+        h = DEF_HEIGHT - MARGIN - 2 * PADDING
       
         if self.requestSelection:
             self.indices = []
-            self.selector.normalize(self, x0, y0, w, h)
+            self.selector.normalize(self, self.hscale * x0, self.vscale * y0, self.hscale * w, self.vscale * h)
             start = time.time()
             for idx in range(0, len(self.data.cells)):
                 cell = self.data.cells[idx]
-                self.selector.apply(self, cell, x0, y0, w, h)
+                self.selector.apply(self, cell, self.hscale * x0, self.vscale * y0, self.hscale * w, self.vscale * h)
                 cell.project(self.selector)
                 if cell.selected:
                     self.indices += [idx]
@@ -331,7 +345,7 @@ class Py5Renderer(Sketch):
             self.text("Max exp.", x00 + 160, y00 + 35)
 
         self.fill(130)
-        self.text("UMAP1", x0, y0 + h + 2.5/2, w, self.height - y0 - h)
+        self.text("UMAP1", x0, y0 + h + 2.5/2, w, DEF_HEIGHT - y0 - h)
         self.push_matrix()
         self.translate((x0-2.5)/2, y0 + h/2)
         self.rotate(-self.HALF_PI)
@@ -339,15 +353,15 @@ class Py5Renderer(Sketch):
         self.pop_matrix()
         
     def showGeneScatter(self):
-        x0 = self.width/2 + GENE_WIDTH + MARGIN
-        w = self.width - x0 - MARGIN
+        x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
+        w = DEF_WIDTH - x0 - MARGIN
         h = w
-        y0 = (self.height - h) / 2
-
-        self.shape(self.scatterShape)
+        y0 = (DEF_HEIGHT - h) / 2        
 
         self.fill(100)
         self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
+
+        self.shape(self.scatterShape)
 
         self.stroke_weight(2)
         self.stroke(120)
@@ -368,10 +382,13 @@ class Py5Renderer(Sketch):
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
 
     def showGeneViolinPlot(self):
-        x0 = self.width/2 + GENE_WIDTH + MARGIN
-        w = self.width - x0 - MARGIN
+        x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
+        w = DEF_WIDTH - x0 - MARGIN
         h = w
-        y0 = (self.height - h) / 2
+        y0 = (DEF_HEIGHT - h) / 2
+
+        self.fill(100)
+        self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
 
         self.no_stroke()
         self.fill(self.color(240, 118, 104, 80))
@@ -411,9 +428,9 @@ class Py5Renderer(Sketch):
     def setClip(self):
         x0 = 25
         y0 = 25
-        w = self.width/2 - MARGIN
-        h = self.height - MARGIN       
-        self.clip(x0 - 2.5, y0 - 2.5, w + 5, h + 5)
+        w = DEF_WIDTH/2 - MARGIN
+        h = DEF_HEIGHT - MARGIN
+        self.clip(self.hscale * (x0 - 2.5), self.vscale * (y0 - 2.5), self.hscale * (w + 5), self.vscale * (h + 5))
 
     def delClip(self):
         self.no_clip()        
