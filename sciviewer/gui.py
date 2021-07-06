@@ -80,18 +80,18 @@ class ScrollableList:
     def press(self):
         self.pressed = True
 
-    def drag(self, mx, my):
-        if self.pressed:            
+    def drag(self, mx, my, sx, sy):
+        if self.pressed:
             self.dragged = True
-            if self.y <= my and my <= self.y + self.h:
-                self.scrollbar.update(my)
+            if sy * self.y <= my and my <= sy * (self.y + self.h):
+                self.scrollbar.update(my, sy)
 
-    def contains(self, mx, my):
-         return self.x + 0.9 * self.w <= mx and mx <= self.x + self.w
+    def contains(self, mx, my, sx, sy):
+         return sx * (self.x + 0.9 * self.w) <= mx and mx <= sy * (self.x + self.w)
 
-    def release(self, mx, my):
-        insideItemArea = self.x + 20 <= mx and mx <= self.x + 0.85 * self.w and self.y <= my and my <= self.y + self.h
-        insideDragArea = self.x + 0.9 * self.w <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def release(self, mx, my, sx, sy):
+        insideItemArea = sx * (self.x + 20) <= mx and mx <= sx * (self.x + 0.85 * self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
+        insideDragArea = sx * (self.x + 0.9 * self.w) <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if not self.dragged and insideItemArea:
             l = my - self.scrollbar.translateY
             newItem = int(l / itemHeight)
@@ -101,7 +101,7 @@ class ScrollableList:
             else:
                 self.selItem = newItem
         elif self.pressed and insideDragArea:
-            self.scrollbar.update(my)
+            self.scrollbar.update(my, sy)
 
         self.pressed = False
         self.dragged = False
@@ -122,8 +122,8 @@ class ScrollBar:
         self.frac = self.listHeight / self.totalHeight
         self.maxy = (1 - self.frac) * self.listHeight
 
-    def update(self, y):
-        if y <= self.maxy:
+    def update(self, y, sy):
+        if y <= sy * self.maxy:
             self.posY = y
             ty = float(self.totalHeight - self.listHeight) * (y / self.maxy)
             self.translateY = -max(0, ty)
@@ -156,8 +156,8 @@ class Button:
         py5obj.fill(255)
         py5obj.text(self.label, self.x, self.y, self.w, self.h)
   
-    def contains(self, mx, my):
-        return self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def contains(self, mx, my, sx, sy):
+        return sx * self.x <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
 
 
 class ToggleButton:
@@ -191,10 +191,10 @@ class ToggleButton:
         py5obj.fill(255)
         py5obj.text(self.label2, self.x + self.w/2, self.y, self.w/2, self.h)
 
-    def contains(self, mx, my):
-        inside = self.x <= mx and mx <= self.x + self.w and self.y <= my and my <= self.y + self.h
+    def contains(self, mx, my, sx, sy):
+        inside = sx * self.x <= mx and mx <= sx * (self.x + self.w) and sy * self.y <= my and my <= sy * (self.y + self.h)
         if inside:
-            if self.x <= mx and mx <= self.x + self.w/2:
+            if sx * self.x <= mx and sx * (mx <= self.x + self.w/2):
                 self.state = 1
             else:
                 self.state = 2
@@ -225,6 +225,9 @@ class Selector():
         if self.state == CLOSED: 
             return
         
+        p5obj.push_matrix()
+        p5obj.scale(1/p5obj.hscale, 1/p5obj.vscale)
+
         if self.state == SET_SPINE:
             p5obj.stroke(240, 118, 104)
             p5obj.line(self.spx0, self.spy0, self.spx1, self.spy1)
@@ -236,6 +239,7 @@ class Selector():
         else:
             self.displayBox(p5obj)
     
+        p5obj.pop_matrix()
     
     def apply(self, p5obj, cell, sx0, sy0, sw, sh):
         sx = p5obj.remap(cell.umap1, 0, 1, sx0, sx0 + sw)
