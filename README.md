@@ -43,19 +43,20 @@ Sciviewer is executed from a Jupyter notebook such as in the examples directory.
 
 ```
 from sciviewer import SCIViewer
-svobj = SCIViewer(umap, expr)
+svobj = SCIViewer(expr, umap)
 svobj.explore_data()
 ```
 
-Running the code above will cause the visualizer to appear. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
+Running the code above will cause the visualizer to appear. The umap and expression data can now be provided directly as a [Scanpy AnnData](https://scanpy.readthedocs.io/en/stable/usage-principles.html#anndata) object. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
 
 [![Watch the video](https://img.youtube.com/vi/YgvMmvgFFE0/maxresdefault.jpg)](https://youtu.be/YgvMmvgFFE0)
 
 ## Some key usage points:
- - The expression data can be provided as a Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
- - Providing the data as a csc_matrix is recommended for large datasets as it can lead to a considerable (1-2 order or magnitude) performance speedup. See [this notebook](./examples/sciviewer_example_50K_Tcell.ipynb) as an example.
- - If the expression data is provided as a Pandas DataFrame, the cell names are inferred from the index and the gene names are inferred from the columns. Otherwise, the gene names and cell names can be provided when initializing the SCIViewer class with the gene_names and cell_names arguments.
- - The selected_cells attribute of the sciviewer object is updated whenever a new set of cells are selected, regardless of the mode, and contains information about the selected cells. The results_proj_correlation attribute of the sciviewer object is updated whenever a new selection is made in the "directional" mode and contains the Pearson correlation and P-values of all genes for the selected direction and cells. The results_diffexpr attribute is updated when a new selection is made in the "differential" mode and contains the T-statistic and P-value for the differential expression test (simple Welch's T-test). These are updated in real time as the visualizer is in use.
+ - __Inputs__: The expression data can be provided as a Scanpy AnnData, Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
+ - __AnnData expression__: For AnnData objects, the expression data are accessed from the .X attribute by default. Setting the use_raw argument to True causes it to be accessed from the .raw.X attribute instead. If the data are sparse, sciviewer requires it to be in the csc_matrix format. See the tutorial for how to convert between sparse matrix formats
+ - __Sparsity__: Providing the data as a sparse csc_matrix is recommended for large datasets as it can lead to a considerable (1-2 order or magnitude) performance speedup. See [this notebook](./examples/sciviewer_example_50K_Tcell.ipynb) as an example.
+ - __Gene/cell names__: If the expression data is provided as a Pandas DataFrame, the cell names are inferred from the index and the gene names are inferred from the columns. If it is provided as a Scanpy AnnData, the gene names come from the index of the .var attribute and the cell names come from the index of the .obs attribute. Otherwise, the gene names and cell names can be provided when initializing the SCIViewer class with the gene_names and cell_names arguments, or will be initialized with generic names. 
+ - __Real time updating of python variables__ The selected_cells attribute of the sciviewer object is updated whenever a new set of cells are selected, regardless of the mode, and contains information about the selected cells. The results_proj_correlation attribute of the sciviewer object is updated whenever a new selection is made in the "directional" mode and contains the Pearson correlation and P-values of all genes for the selected direction and cells. The results_diffexpr attribute is updated when a new selection is made in the "differential" mode and contains the T-statistic and P-value for the differential expression test (simple Welch's T-test). These are updated in real time as the visualizer is in use.
 
 See the example notebooks for more details
 
