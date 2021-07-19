@@ -19,6 +19,8 @@ conda env update -n your_existing_environment -f https://raw.githubusercontent.c
 conda activate your_existing_environment
 ```
 
+Note, Sciviewer currently requires Python 3.8 or greater.
+
 2. Next, install the sciviewer package using pip:
 ```
 pip install sciviewer
@@ -47,7 +49,9 @@ svobj = SCIViewer(expr, umap)
 svobj.explore_data()
 ```
 
-Running the code above will cause the visualizer to appear. The umap and expression data can now be provided directly as a [Scanpy AnnData](https://scanpy.readthedocs.io/en/stable/usage-principles.html#anndata) object. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
+Running the code above will cause the visualizer to appear. The umap and expression data can also now be provided directly as a [Scanpy AnnData](https://scanpy.readthedocs.io/en/stable/usage-principles.html#anndata), see below or [tutorials](./tutorials/sciviewer_example_3K_PBMC.ipynb) for details.
+
+Click the video link below for a ~3 minute tutorial on how to use the visualizer:
 [![Watch the video](https://img.youtube.com/vi/YgvMmvgFFE0/maxresdefault.jpg)](https://youtu.be/YgvMmvgFFE0)
 
 Note, if you are running Sciviewer from the Jupyter notebook as in the tutorials, you need to load the py5 magic extension before you can start the visualizer
