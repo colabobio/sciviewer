@@ -16,4 +16,4 @@ dependencies:
   - matplotlib
   - scanpy
   - pip:
-      - py5
+      - py5==0.4a2
