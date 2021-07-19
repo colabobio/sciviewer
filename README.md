@@ -1,4 +1,4 @@
-# Single Cell Interactive Viewer (sciviewer)
+# Single Cell Interactive Viewer (Sciviewer)
 
 This is an interactive viewer for 2D embeddings such as [UMAP](https://umap-learn.readthedocs.io/en/latest/) or [tSNE](https://lvdmaaten.github.io/tsne/) of high dimensional single-cell RNA-seq data that is run directly out of the [Jupyter Notebook](https://jupyter.org/) environment. The user can select cells in the 2D plane and the viewer will calculate the differential expression between the selected and the unselected cells. Alternatively, the user can select a group of cells and a direction and the viewer will identify the genes with the greatest variation (Pearson correlation) along that direction. See a video of how this works below. Also, see the example tutorial in this repository (a small example of [3000 PBMCs](tutorials/sciviewer_example_3K_PBMC.ipynb) that illustrates all the input options, and a larger one of [50,000 circulating T-cells](tutorials/sciviewer_example_50K_Tcell.ipynb)).
 
@@ -48,8 +48,19 @@ svobj.explore_data()
 ```
 
 Running the code above will cause the visualizer to appear. The umap and expression data can now be provided directly as a [Scanpy AnnData](https://scanpy.readthedocs.io/en/stable/usage-principles.html#anndata) object. Click the video link below for a ~3 minute tutorial on how to use the visualizer:
-
 [![Watch the video](https://img.youtube.com/vi/YgvMmvgFFE0/maxresdefault.jpg)](https://youtu.be/YgvMmvgFFE0)
+
+Note, if you are running Sciviewer from the Jupyter notebook as in the tutorials, you need to load the py5 magic extension before you can start the visualizer
+
+```
+%load_ext py5
+```
+
+and if you are running it from a jupyter notebook on a mac computer, you need to add an additional magic extension
+
+```
+%gui osx
+```
 
 ## Some key usage points:
  - __Inputs__: The expression data can be provided as a Scanpy AnnData, Pandas DataFrame, a Numpy ndarray, or as a scipy sparse [csc_matrix](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.csr_matrix.html).
