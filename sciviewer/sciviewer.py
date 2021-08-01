@@ -10,11 +10,9 @@ from py5 import Sketch
 import anndata
 import threading
 from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
-from .utils import angle_between
-from .utils import load_data
+from .utils import angle_between, load_data
 #from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
-#from utils import angle_between
-#from utils import load_data
+#from utils import angle_between, load_data
 
 import time
 
@@ -149,26 +147,18 @@ class Py5Renderer(Sketch):
             self.data.update_selected_cells(self.indices)
             if self.modeBtn.state == 1:
                 # Correlation of expression with projection onto UMAP axis
-                start = time.time()
-                sortedGenes = self.data.calculateGeneCorrelations(self.indices)
-                end = time.time()
-                print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
+                # start = time.time()
+                # sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+                # end = time.time()
+                # print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
+                self.launch_thread(self.launch_gene_corr_calc, name="launch_gene_corr_calc")
             else:
                 # Calculate differential expression
                 start = time.time()
-                sortedGenes = self.data.calculateDiffExpr(self.indices)
+                self.sortedGenes = self.data.calculateDiffExpr(self.indices)
                 end = time.time()
                 print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
-
-            self.scrollList.setList(sortedGenes,
-                                    maxposgenes=self.data.maxdisplaygenes_pos,
-                                    maxneggenes=self.data.maxdisplaygenes_neg)
-            if len(sortedGenes) == 0:
-                print('No genes pass the statistical significance / effect size thresholds.')
-                print('Please make another selection or re-run with lower thresholds')
-            self.requestSelection = False
-            self.selGene = -1
-            self.colorUMAPShape(RST_COLOR)               
+                self.setup_scroll_list()
 
         self.setClip()
         self.selector.display(self)
@@ -185,6 +175,31 @@ class Py5Renderer(Sketch):
         self.modeBtn.display(self)
         self.exportBtn.display(self)
 
+        if self.has_thread('launch_gene_corr_calc'):
+            self.fill(200, 100)
+            self.no_stroke()
+            self.rect(0, 0, self.width, self.height)
+            self.fill(50)
+            self.text("Calculating gene correlations...", 0, 0, self.width, self.height)
+
+    def launch_gene_corr_calc(self):
+        start = time.time()
+        self.sortedGenes = self.data.calculateGeneCorrelations(self.indices)
+        end = time.time()
+        print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
+        self.setup_scroll_list()
+ 
+    def setup_scroll_list(self):
+        self.scrollList.setList(self.sortedGenes,
+                                maxposgenes=self.data.maxdisplaygenes_pos,
+                                maxneggenes=self.data.maxdisplaygenes_neg)
+        if len(self.sortedGenes) == 0:
+            print('No genes pass the statistical significance / effect size thresholds.')
+            print('Please make another selection or re-run with lower thresholds')
+        self.requestSelection = False
+        self.selGene = -1
+        self.colorUMAPShape(RST_COLOR)        
+
     def mouse_pressed(self):
         if self.mouse_x < self.width/2:
             self.selector.press(self.mouse_x, self.mouse_y, self.width, self.height)
@@ -192,16 +207,25 @@ class Py5Renderer(Sketch):
             self.scrollList.press()
 
     def mouse_dragged(self):
+        if self.has_thread('launch_gene_corr_calc'): 
+            return
+
         if self.mouse_x < self.width/2:
             self.selector.drag(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.mouse_x < self.width/2 + 1.5 * GENE_WIDTH:
             self.scrollList.drag(self.mouse_x, self.pmouse_y, self.hscale, self.vscale)
 
     def mouse_moved(self):
+        if self.has_thread('launch_gene_corr_calc'): 
+            return
+        
         if self.mouse_x < self.width/2:
             self.selector.move(self.mouse_x, self.mouse_y, self.width, self.height)
 
     def mouse_released(self):
+        if self.has_thread('launch_gene_corr_calc'): 
+            return
+        
         if self.mouse_x < self.width/2:
             self.requestSelection = self.selector.release(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.exportBtn.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
@@ -506,12 +530,12 @@ class SCIViewer():
                 embedding_name='X_umap', pearsonsThreshold=0.1, tThreshold=2.0,
                 pvalueThreshold=0.05, maxdisplaygenes_pos=100, maxdisplaygenes_neg=100,
                 width=1600, height=800, use_raw=False):
-        self.loaded = False        
+        self.loaded = False
+        self.renderer = Py5Renderer(self, width=width, height=height)
         thread = threading.Thread(target=load_data, args=(self, expr, umap, gene_names, cell_names,
                                                           embedding_name, pearsonsThreshold, tThreshold,
                                                           pvalueThreshold, maxdisplaygenes_pos, maxdisplaygenes_neg, use_raw), daemon=True)
         thread.start()        
-        self.renderer = Py5Renderer(self, width=width, height=height)
 
     def load(self, expr, umap, gene_names, cell_names,
              embedding_name, pearsonsThreshold, tThreshold,
