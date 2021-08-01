@@ -8,10 +8,13 @@ import sys
 import py5
 from py5 import Sketch
 import anndata
+import threading
 from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
 from .utils import angle_between
+from .utils import load_data
 #from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
 #from utils import angle_between
+#from utils import load_data
 
 import time
 
@@ -68,6 +71,7 @@ class Cell:
 class Py5Renderer(Sketch):
     def __init__(self, dataobj, width=DEF_WIDTH, height=DEF_HEIGHT):
         super().__init__()
+        print("Create renderer")
         self.data = dataobj
         self.indices = []
         self.excluded_indices = []
@@ -88,23 +92,35 @@ class Py5Renderer(Sketch):
         self.viewer_height = height
         self.hscale = self.viewer_width / DEF_WIDTH
         self.vscale = self.viewer_height / DEF_HEIGHT
-    
+
     def settings(self):
         self.size(self.viewer_width, self.viewer_height, self.P2D)
 
     def setup(self):
+        print("Setting up...")
         surface = self.get_surface()
         surface.set_resizable(True)
         surface.set_title("SCIViewer")
 
         self.background(255)
         self.text_align(self.CENTER, self.CENTER)
-        self.initUI()
-        self.initUMAPshape()
+        self.initUI()        
         self.text_font(self.create_font("Helvetica", FONT_SIZE))
+
+        self.umapShape = None
+        self.makingShape = False
 
     def draw(self):
         self.background(255)
+
+        if not self.data.loaded or not self.umapShape:
+            self.fill(50)
+            self.text("LOADING DATA INTO SCIVIEWER...", 0, 0, self.width, self.height)
+
+            if self.data.loaded and not self.makingShape:
+                self.launch_thread(self.initUMAPshape)
+
+            return
 
         self.viewer_width = self.width
         self.viewer_height = self.height        
@@ -214,15 +230,19 @@ class Py5Renderer(Sketch):
         self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
     def initUMAPshape(self):
+        print("Initializing UMAP PShape...")
+        self.makingShape = True
         x0 = MARGIN/2 + PADDING
         y0 = MARGIN/2 + PADDING
         w = DEF_WIDTH/2 - MARGIN - 2 * PADDING
         h = DEF_HEIGHT - MARGIN - 2 * PADDING
 
-        self.umapShape = self.create_shape(self.GROUP)
+        shape = self.create_shape(self.GROUP)
         for cell in self.data.cells:
             sh = cell.create_shape(self, x0, y0, w, h)
-            self.umapShape.add_child(sh)
+            shape.add_child(sh)
+        self.umapShape = shape
+        print("Done.")
 
     def initScatterShape(self):
         x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
@@ -485,8 +505,18 @@ class SCIViewer():
     def __init__(self, expr, umap=None, gene_names=None, cell_names=None,
                 embedding_name='X_umap', pearsonsThreshold=0.1, tThreshold=2.0,
                 pvalueThreshold=0.05, maxdisplaygenes_pos=100, maxdisplaygenes_neg=100,
-                width=1600, height=800, use_raw=False):       
-      
+                width=1600, height=800, use_raw=False):
+        self.loaded = False        
+        thread = threading.Thread(target=load_data, args=(self, expr, umap, gene_names, cell_names,
+                                                          embedding_name, pearsonsThreshold, tThreshold,
+                                                          pvalueThreshold, maxdisplaygenes_pos, maxdisplaygenes_neg, use_raw), daemon=True)
+        thread.start()        
+        self.renderer = Py5Renderer(self, width=width, height=height)
+
+    def load(self, expr, umap, gene_names, cell_names,
+             embedding_name, pearsonsThreshold, tThreshold,
+             pvalueThreshold, maxdisplaygenes_pos, maxdisplaygenes_neg, use_raw):
+        print('Start thread')
         if type(expr) is anndata._core.anndata.AnnData:
             if umap is None:
                 umap = expr.obsm[embedding_name]
@@ -555,8 +585,6 @@ class SCIViewer():
         max1 = self.umap[:,0].max()
         min2 = self.umap[:,1].min()
         max2 = self.umap[:,1].max()
-
-        self.renderer = Py5Renderer(self, width=width, height=height)
         
         start = time.time()
         cells = []
@@ -566,6 +594,8 @@ class SCIViewer():
             cells.append(cell)
         self.cells = cells
         self.num_cells = len(cells)
+        print('Finish thread')
+        self.loaded = True
         
     def update_selected_cells(self, indices):
         celldata = [[i, self.cells[i].code, self.cells[i].proj] for i in indices]
