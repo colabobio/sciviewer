@@ -57,23 +57,23 @@ class ScrollableList:
         py5obj.translate(0, self.scrollbar.translateY)
         py5obj.no_stroke()
         for i in range(0, len(self.genes)):
-            py5obj.fill(210)
+            py5obj.fill(0, 0, 81)
             rx = 20
             ry = i * ITEM_HEIGHT + ITEM_SPACE
             rw = 0.85 * self.w - 20
             rh = ITEM_HEIGHT - ITEM_SPACE
             if self.selItem == i:
-                py5obj.stroke(240, 118, 104)
+                py5obj.stroke(6, 56, 93)
             else:
                 py5obj.no_stroke()
             py5obj.rect(rx, ry, rw, rh)
-            py5obj.fill(120)
+            py5obj.fill(0, 0, 46)
             gene = self.genes[i]
             text = gene.name + " " + "{:1.2f}".format(gene.r)
             py5obj.text(text, rx, ry, rw, rh)
         py5obj.pop_matrix()
 
-        py5obj.fill(220)
+        py5obj.fill(0, 0, 85)
         py5obj.no_stroke()
         py5obj.rect(0.9 * self.w, 0, 0.1 * self.w, self.h)
         self.scrollbar.display(py5obj)
@@ -137,7 +137,7 @@ class ScrollBar:
         h = self.barHeight
         py5obj.push_style()
         py5obj.no_stroke()
-        py5obj.fill(150)
+        py5obj.fill(0, 0, 58)
         py5obj.rect(x, y, w, h, w)
         py5obj.pop_style()
             
@@ -152,10 +152,10 @@ class Button:
   
     def display(self, py5obj):
         py5obj.no_stroke()
-        py5obj.fill(120)
+        py5obj.fill(0, 0, 46)
         py5obj.rect(self.x, self.y, self.w, self.h, 15)
     
-        py5obj.fill(255)
+        py5obj.fill(0, 0, 100)
         py5obj.text(self.label, self.x, self.y, self.w, self.h)
   
     def contains(self, mx, my, sx, sy):
@@ -176,21 +176,21 @@ class ToggleButton:
         py5obj.no_stroke()
 
         if self.state == 1:
-            py5obj.fill(120)
+            py5obj.fill(0, 0, 46)
         else:
-            py5obj.fill(180)
+            py5obj.fill(0, 0, 69)
         py5obj.rect(self.x, self.y, self.w/2, self.h, 15, 0, 0, 15)
     
-        py5obj.fill(255)
+        py5obj.fill(0, 0, 100)
         py5obj.text(self.label1, self.x, self.y, self.w/2, self.h)
   
         if self.state == 1:
-            py5obj.fill(180)
+            py5obj.fill(0, 0, 69)
         else:
-            py5obj.fill(120)
+            py5obj.fill(0, 0, 46)
         py5obj.rect(self.x + self.w/2, self.y, self.w/2, self.h, 0, 15, 15, 0)
     
-        py5obj.fill(255)
+        py5obj.fill(0, 0, 100)
         py5obj.text(self.label2, self.x + self.w/2, self.y, self.w/2, self.h)
 
     def contains(self, mx, my, sx, sy):
@@ -235,10 +235,10 @@ class Selector():
         p5obj.scale(p5obj.width/self.screen_width, p5obj.height/self.screen_height)
 
         if self.state == SET_SPINE:
-            p5obj.stroke(240, 118, 104)
+            p5obj.stroke(6, 56, 93)
             p5obj.line(self.spx0, self.spy0, self.spx1, self.spy1)
         elif self.state == SET_WIDTH:
-            p5obj.stroke(240, 118, 104)
+            p5obj.stroke(6, 56, 93)
             p5obj.line(self.spx0, self.spy0, self.spx1, self.spy1)
             p5obj.line(self.spx1, self.spy1, self.wx, self.wy)
             self.displayBox(p5obj)
@@ -300,13 +300,21 @@ class Selector():
         self.ny1 = py5obj.remap(self.spy1, sy0, sy0 + sh, 0, 1)
   
     def displayBox(self, py5obj):
-        py5obj.stroke(240, 118, 104)
-        py5obj.no_fill()
+        pass
         py5obj.push_matrix()
         py5obj.translate(self.x0, self.y0)
         py5obj.rotate(self.angle)
-        py5obj.rect(0, -self.h/2, self.w, self.h)
-        py5obj.stroke(240, 118, 104, 120)
+        py5obj.stroke(6, 56, 93)
+        py5obj.no_fill()
+
+        # py5obj.rect(0, -self.h/2, self.w, self.h)
+
+        py5obj.line(0, -self.h/2, 0, +self.h/2)
+        py5obj.line(0, +self.h/2, self.w, +self.h/2)
+        py5obj.line(self.w, +self.h/2, self.w, -self.h/2)
+        py5obj.line(self.w, -self.h/2, 0, -self.h/2)
+
+        py5obj.stroke(6, 56, 93, 120)
         py5obj.line(0, 0, self.w, 0)
         py5obj.line(0.9 * self.w, -self.h/2, self.w, 0)
         py5obj.line(0.9 * self.w, +self.h/2, self.w, 0)

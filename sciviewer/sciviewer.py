@@ -5,13 +5,12 @@ import numpy.linalg as la
 import scipy.stats as ss
 import scipy.sparse as sp
 import sys
-import py5
 from py5 import Sketch
 import anndata
 import threading
-from .gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
+from .gui import ScrollableList, Button, ToggleButton, Selector
 from .utils import angle_between, load_data
-#from gui import ScrollableList, ScrollBar, Button, ToggleButton, Selector
+#from gui import ScrollableList, Button, ToggleButton, Selector
 #from utils import angle_between, load_data
 
 import time
@@ -63,7 +62,7 @@ class Cell:
         y = p5obj.remap(self.umap2, 0, 1, y0, y0 + h)        
         sh = p5obj.create_shape(p5obj.ELLIPSE, x, y, 5, 5)
         sh.set_stroke(False)
-        sh.set_fill(p5obj.color(150, 80))
+        sh.set_fill(p5obj.color(0, 0, 58, 80))
         return sh        
        
 class Py5Renderer(Sketch):
@@ -81,8 +80,8 @@ class Py5Renderer(Sketch):
         self.exportBtn = None
         self.modeBtn = None
         self.modeChange = False
-        self.violingSelStats = None
-        self.violingExlStats = None
+        self.violinSelStats = None
+        self.violinExcStats = None
         self.maxValue = 0
         self.minCoord = 0
         self.maxCoord = 0
@@ -100,7 +99,11 @@ class Py5Renderer(Sketch):
         surface.set_resizable(True)
         surface.set_title("SCIViewer")
 
-        self.background(255)
+        self.width0 = self.width
+        self.height0 = self.height
+        self.color_mode(self.HSB, 360, 100, 100, 255)
+
+        self.background(0, 0, 100)
         self.text_align(self.CENTER, self.CENTER)
         self.initUI()        
         self.text_font(self.create_font("Helvetica", FONT_SIZE))
@@ -109,37 +112,28 @@ class Py5Renderer(Sketch):
         self.makingShape = False
 
     def draw(self):
-        self.background(255)
+        self.background(0, 0, 100)
 
         if not self.data.loaded or not self.umapShape:
-            self.fill(50)
+            self.fill(0, 0, 19)
             self.text("LOADING DATA INTO SCIVIEWER...", 0, 0, self.width, self.height)
 
             if self.data.loaded and not self.makingShape:
-                self.launch_thread(self.initUMAPshape)
+                self.launch_thread(self.initUMAPshape, name="initUMAPshape")
 
             return
 
         self.viewer_width = self.width
         self.viewer_height = self.height        
-        self.hscale = self.viewer_width / DEF_WIDTH
-        self.vscale = self.viewer_height / DEF_HEIGHT
+        self.hscale = self.viewer_width / self.width0
+        self.vscale = self.viewer_height / self.height0
         self.scale(self.hscale, self.vscale)
 
-        if self.selectedGene:        
-            self.data.calculateGeneMinMax(self.indices, self.selGene)
-            if self.modeBtn.state == 1:
-                self.initScatterShape()
-            else:
-                self.initViolinShape()
-            self.colorUMAPShape(EXP_COLOR)            
-            self.selectedGene = False
-        
-        if self.modeChange and (len(self.indices) > 0) and (self.selGene != -1):
-            if (self.modeBtn.state == 1):
-                self.initScatterShape()
-            else:
-                self.initViolinShape()
+        if self.selectedGene and not self.has_thread("launch_gene_shape_init"):
+            self.launch_thread(self.launch_gene_sel_init, name="launch_gene_sel_init")
+
+        if self.modeChange and (len(self.indices) > 0) and (self.selGene != -1) and not self.has_thread("launch_gene_sel_init"):
+            self.launch_thread(self.launch_gene_shape_init, name="launch_gene_shape_init")
 
         self.showUMAPScatter()
 
@@ -147,18 +141,10 @@ class Py5Renderer(Sketch):
             self.data.update_selected_cells(self.indices)
             if self.modeBtn.state == 1:
                 # Correlation of expression with projection onto UMAP axis
-                # start = time.time()
-                # sortedGenes = self.data.calculateGeneCorrelations(self.indices)
-                # end = time.time()
-                # print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
                 self.launch_thread(self.launch_gene_corr_calc, name="launch_gene_corr_calc")
             else:
                 # Calculate differential expression
-                start = time.time()
-                self.sortedGenes = self.data.calculateDiffExpr(self.indices)
-                end = time.time()
-                print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
-                self.setup_scroll_list()
+                self.launch_thread(self.launch_diff_expr_calc, name="launch_diff_expr_calc")
 
         self.setClip()
         self.selector.display(self)
@@ -166,7 +152,9 @@ class Py5Renderer(Sketch):
 
         self.scrollList.display(self)
 
-        if self.selGene != -1:
+        if self.selGene != -1 and \
+           not self.has_thread("launch_gene_sel_init") and \
+           not self.has_thread("launch_gene_shape_init"):
             if self.modeBtn.state == 1:
                 self.showGeneScatter()
             else:
@@ -175,12 +163,22 @@ class Py5Renderer(Sketch):
         self.modeBtn.display(self)
         self.exportBtn.display(self)
 
-        if self.has_thread('launch_gene_corr_calc'):
-            self.fill(200, 100)
+        if self.has_thread('launch_gene_corr_calc') or \
+           self.has_thread("launch_diff_expr_calc") or \
+           self.has_thread("launch_gene_sel_init") or \
+           self.has_thread("launch_gene_shape_init"):            
             self.no_stroke()
-            self.rect(0, 0, self.width, self.height)
-            self.fill(50)
-            self.text("Calculating gene correlations...", 0, 0, self.width, self.height)
+            self.fill(0, 0, 77, 180)
+            self.rect(0, 0, self.width0, self.height0)
+            self.fill(0, 0, 19)
+            message = ""
+            if self.has_thread('launch_gene_corr_calc'):
+                message = "CALCULATING GENE CORRELATIONS..."
+            elif self.has_thread("launch_diff_expr_calc"):
+                message = "CALCULATING DIFFERENTIAL EXPRESSION..."
+            elif self.has_thread("launch_gene_sel_init") or self.has_thread("launch_gene_shape_init"):
+                message = "INITIALIZING GENE SELECTION..."
+            self.text(message, 0, 0, self.width0, self.height0)
 
     def launch_gene_corr_calc(self):
         start = time.time()
@@ -188,7 +186,30 @@ class Py5Renderer(Sketch):
         end = time.time()
         print(end - start,'seconds to calculate correlations. Sparsity: ', self.data.sparse)
         self.setup_scroll_list()
+
+    def launch_diff_expr_calc(self):
+        start = time.time()
+        self.sortedGenes = self.data.calculateDiffExpr(self.indices)
+        end = time.time()
+        print(end - start,'seconds to calculate differential expression. Sparsity: ', self.data.sparse)             
+        self.setup_scroll_list()
+
+    def launch_gene_sel_init(self):
+        self.data.calculateGeneMinMax(self.indices, self.selGene)
+        if self.modeBtn.state == 1:
+            self.initScatterShape()
+        else:
+            self.initViolinShape()
+        self.colorUMAPShape(EXP_COLOR)
+        self.selectedGene = False  
  
+    def launch_gene_shape_init(self):
+        if (self.modeBtn.state == 1):
+            self.initScatterShape()
+        else:
+            self.initViolinShape()
+        self.modeChange = False    
+
     def setup_scroll_list(self):
         self.scrollList.setList(self.sortedGenes,
                                 maxposgenes=self.data.maxdisplaygenes_pos,
@@ -201,13 +222,20 @@ class Py5Renderer(Sketch):
         self.colorUMAPShape(RST_COLOR)        
 
     def mouse_pressed(self):
+        if self.has_thread('launch_gene_corr_calc') or \
+           self.has_thread("launch_diff_expr_calc") or \
+           self.has_thread("launch_gene_sel_init") or self.has_thread("launch_gene_shape_init"):
+            return
+        
         if self.mouse_x < self.width/2:
             self.selector.press(self.mouse_x, self.mouse_y, self.width, self.height)
         elif self.scrollList.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
             self.scrollList.press()
 
     def mouse_dragged(self):
-        if self.has_thread('launch_gene_corr_calc'): 
+        if self.has_thread('launch_gene_corr_calc') or \
+           self.has_thread("launch_diff_expr_calc") or \
+           self.has_thread("launch_gene_sel_init") or self.has_thread("launch_gene_shape_init"):
             return
 
         if self.mouse_x < self.width/2:
@@ -216,14 +244,18 @@ class Py5Renderer(Sketch):
             self.scrollList.drag(self.mouse_x, self.pmouse_y, self.hscale, self.vscale)
 
     def mouse_moved(self):
-        if self.has_thread('launch_gene_corr_calc'): 
+        if self.has_thread('launch_gene_corr_calc') or \
+           self.has_thread("launch_diff_expr_calc") or \
+           self.has_thread("launch_gene_sel_init") or self.has_thread("launch_gene_shape_init"):
             return
         
         if self.mouse_x < self.width/2:
             self.selector.move(self.mouse_x, self.mouse_y, self.width, self.height)
 
     def mouse_released(self):
-        if self.has_thread('launch_gene_corr_calc'): 
+        if self.has_thread('launch_gene_corr_calc') or \
+           self.has_thread("launch_diff_expr_calc") or \
+           self.has_thread("launch_gene_sel_init") or self.has_thread("launch_gene_shape_init"):
             return
         
         if self.mouse_x < self.width/2:
@@ -254,7 +286,6 @@ class Py5Renderer(Sketch):
         self.modeBtn = ToggleButton(x0, 25, w, 30, "DIRECTIONAL", "DIFFERENTIAL")  
         
     def initUMAPshape(self):
-        print("Initializing UMAP PShape...")
         self.makingShape = True
         x0 = MARGIN/2 + PADDING
         y0 = MARGIN/2 + PADDING
@@ -266,14 +297,15 @@ class Py5Renderer(Sketch):
             sh = cell.create_shape(self, x0, y0, w, h)
             shape.add_child(sh)
         self.umapShape = shape
-        print("Done.")
 
     def initScatterShape(self):
         x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
         w = DEF_WIDTH - x0 - MARGIN
         h = w
-        y0 = (DEF_HEIGHT - h) / 2        
-        self.scatterShape = self.create_shape(self.GROUP)
+        y0 = (DEF_HEIGHT - h) / 2
+
+        self.scatterShape = None
+        shape = self.create_shape(self.GROUP)
         expr = self.data.expr[self.indices, self.selGene]
         if self.data.sparse:
             expr = expr.toarray().reshape(-1)
@@ -284,8 +316,9 @@ class Py5Renderer(Sketch):
             y = self.remap(expr[i], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
             sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
             sh.set_stroke(False)
-            sh.set_fill(self.color(150, 80))
-            self.scatterShape.add_child(sh)
+            sh.set_fill(self.color(0, 0, 58, 80))
+            shape.add_child(sh)
+        self.scatterShape = shape
            
     def initViolinShape(self, bw_method=None):
         def _kde_method(X, coords):
@@ -294,6 +327,9 @@ class Py5Renderer(Sketch):
             kde = mp.mlab.GaussianKDE(X, bw_method)
             return kde.evaluate(coords)
         
+        self.violinSelStats = None
+        self.violinExcStats = None
+
         selected_values = self.data.expr[self.indices, self.selGene]
         excluded_values = self.data.expr[self.excluded_indices, self.selGene]
         if self.data.sparse:
@@ -303,29 +339,32 @@ class Py5Renderer(Sketch):
         # selected_values_nonzero = [x for x in selected_values if x != 0]
         # excluded_values_nonzero = [x for x in excluded_values if x != 0]
         
-        self.violingSelStats = mp.cbook.violin_stats(selected_values, _kde_method)
-        self.violingExlStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
+        selStats = mp.cbook.violin_stats(selected_values, _kde_method)
+        excStats = mp.cbook.violin_stats(excluded_values, _kde_method)        
 
         self.maxValue = 0
         self.minCoord = +100000
         self.maxCoord = -100000        
-        for all_stats in [self.violingSelStats, self.violingExlStats]:
+        for all_stats in [selStats, excStats]:
             for stats in all_stats:
                 self.minCoord = min(self.minCoord, stats['coords'].min())
                 self.maxCoord = max(self.maxCoord, stats['coords'].max())                
                 self.maxValue = max(self.maxValue, stats['vals'].max())
 
+        self.violinSelStats = selStats
+        self.violinExcStats = excStats
+
     def colorUMAPShape(self, mode):
         if mode == RST_COLOR:
-            self.umapShape.set_fill(self.color(150, 80))
+            self.umapShape.set_fill(self.color(0, 0, 58, 80))
         elif mode == SEL_COLOR:
             for idx in range(0, len(self.data.cells)):
                 cell = self.data.cells[idx]
                 sh = self.umapShape.get_child(idx)
                 if cell.selected:
-                    cl = self.color(240, 118, 104, 80)                
+                    cl = self.color(6, 56, 93, 80)
                 else:
-                    cl = self.color(150, 80)            
+                    cl = self.color(0, 0, 58, 80)
                 sh.set_fill(cl)
         elif mode == EXP_COLOR:
             if self.data.sparse:
@@ -335,13 +374,13 @@ class Py5Renderer(Sketch):
             min_expr = self.data.minGeneExp
             max_expr = self.data.maxGeneExp
             color_grad -= min_expr
-            color_grad /= (max_expr-min_expr)
-            self.color_mode(self.HSB, 360, 100, 100)
+            color_grad /= (max_expr-min_expr)            
             for idx in range(self.data.num_cells):
                 sh = self.umapShape.get_child(idx)
+                # self.color_mode(self.HSB, 360, 100, 100)
                 cl = self.color(color_grad[idx] * 126 + (1 - color_grad[idx]) * 233, 85, 95, 80)
+                # self.color_mode(self.RGB, 255, 255, 255)
                 sh.set_fill(cl)
-            self.color_mode(self.RGB, 255, 255, 255)
 
     def showUMAPScatter(self):
         x0 = MARGIN/2 + PADDING
@@ -373,7 +412,7 @@ class Py5Renderer(Sketch):
         
         self.shape(self.umapShape)
         self.stroke_weight(2)
-        self.stroke(120)
+        self.stroke(0, 0, 46)
         self.no_fill()
         self.rect(x0 - PADDING, y0 - PADDING, w + 2 * PADDING, h + 2 * PADDING)
 
@@ -383,15 +422,13 @@ class Py5Renderer(Sketch):
             self.no_stroke()
             for i in range(0, 20):
                 f = self.remap(i, 0, 19, 0, 1)
-                self.color_mode(self.HSB, 360, 100, 100)
                 self.fill(f * 126 + (1 - f) * 233, 85, 95, 80)
-                self.color_mode(self.RGB, 255, 255, 255)
                 x = self.remap(f, 0, 1, x00 + 20, x00 + 120)
                 self.rect(x, y00 + 20, 100.0/19, 30)
-            self.fill(130)
+            self.fill(0, 0, 50)
             self.text("Max exp.", x00 + 160, y00 + 35)
 
-        self.fill(130)
+        self.fill(0, 0, 50)
         self.text("UMAP1", x0, y0 + h + 2.5/2, w, DEF_HEIGHT - y0 - h)
         self.push_matrix()
         self.translate((x0-2.5)/2, y0 + h/2)
@@ -400,22 +437,25 @@ class Py5Renderer(Sketch):
         self.pop_matrix()
         
     def showGeneScatter(self):
+        if not self.scatterShape:
+            return
+
         x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
         w = DEF_WIDTH - x0 - MARGIN
         h = w
         y0 = (DEF_HEIGHT - h) / 2        
 
-        self.fill(100)
+        self.fill(0, 0, 38)
         self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
 
         self.shape(self.scatterShape)
 
         self.stroke_weight(2)
-        self.stroke(120)
+        self.stroke(0, 0, 46)
         self.no_fill()
         self.rect(x0, y0, w, h)
 
-        self.fill(130)
+        self.fill(0, 0, 50)
         self.text("{:1.2f}".format(self.data.maxGeneExp), x0 - 20, y0 + 5)
         self.text("{:1.2f}".format(self.data.minGeneExp), x0 - 20, y0 + h - 5)
         self.push_matrix()
@@ -429,26 +469,29 @@ class Py5Renderer(Sketch):
         self.text("Projection", x0 + 5, y0 + h + 10, w - 10, 20)
 
     def showGeneViolinPlot(self):
+        if not self.violinSelStats or not self.violinExcStats:
+            return
+
         x0 = DEF_WIDTH/2 + GENE_WIDTH + MARGIN
         w = DEF_WIDTH - x0 - MARGIN
         h = w
         y0 = (DEF_HEIGHT - h) / 2
 
-        self.fill(100)
+        self.fill(0, 0, 38)
         self.text("Selected gene: " + self.data.geneNames[self.selGene], x0, 55, w, y0 - 55)
 
         self.no_stroke()
-        self.fill(self.color(240, 118, 104, 80))
-        self.violin(self.violingSelStats, x0, y0, w/2, h)
-        self.fill(self.color(150, 80))
-        self.violin(self.violingExlStats, x0 + w/2, y0, w/2, h)
+        self.fill(self.color(6, 56, 93, 80))
+        self.violin(self.violinSelStats, x0, y0, w/2, h)
+        self.fill(self.color(0, 0, 58, 80))
+        self.violin(self.violinExcStats, x0 + w/2, y0, w/2, h)
 
         self.stroke_weight(2)
-        self.stroke(120)
+        self.stroke(0, 0, 46)
         self.no_fill()
         self.rect(x0, y0, w, h)
 
-        self.fill(130)
+        self.fill(0, 0, 50)
         self.text("{:1.2f}".format(self.data.maxGeneExp), x0 - 20, y0 + 5)
         self.text("{:1.2f}".format(self.data.minGeneExp), x0 - 20, y0 + h - 5)
         self.text("SELECTED CELLS", x0, y0 + h + 15, w/2, 2 * FONT_SIZE)
@@ -462,7 +505,7 @@ class Py5Renderer(Sketch):
         widths = 0.5
         widths = [widths] * N
         scalef = 0.4 * w / self.maxValue
-        for stats, pos, width in zip(vpstats, positions, widths):
+        for stats, _, _ in zip(vpstats, positions, widths):
             self.no_stroke()
             self.begin_shape(self.QUAD_STRIP)
             for nx, ny in zip(stats['vals'], stats['coords']):
@@ -610,7 +653,7 @@ class SCIViewer():
         min2 = self.umap[:,1].min()
         max2 = self.umap[:,1].max()
         
-        start = time.time()
+        # start = time.time()
         cells = []
         for i in range(self.umap.shape[0]):
             cell = Cell(self.cellNames[i], self.umap[i,0], self.umap[i,1])
@@ -662,8 +705,17 @@ class SCIViewer():
         else:
             selected_stds = (self.expr[indices,:]**2).sum(axis=0)
             
-        remainder_stds = np.sqrt((self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1))
-        selected_stds = np.sqrt((selected_stds - selected_N*selected_means**2) / (selected_N -1))
+        rem_val = (self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1)
+        if np.all(0 < rem_val):
+            remainder_stds = np.sqrt(rem_val)
+        else:
+            remainder_stds = 0
+
+        sel_val = (selected_stds - selected_N*selected_means**2) / (selected_N -1)
+        if np.all(0 < sel_val):
+            selected_stds = np.sqrt(sel_val)
+        else:
+            selected_stds = 0
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
         
