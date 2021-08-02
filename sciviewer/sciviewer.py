@@ -145,12 +145,16 @@ class Py5Renderer(Sketch):
             else:
                 # Calculate differential expression
                 self.launch_thread(self.launch_diff_expr_calc, name="launch_diff_expr_calc")
+                
+            self.requestSelection = False
 
         self.setClip()
         self.selector.display(self)
         self.delClip()
 
-        self.scrollList.display(self)
+        if not self.has_thread('launch_gene_corr_calc') and \
+           not self.has_thread("launch_diff_expr_calc"):
+            self.scrollList.display(self)
 
         if self.selGene != -1 and \
            not self.has_thread("launch_gene_sel_init") and \
@@ -195,13 +199,13 @@ class Py5Renderer(Sketch):
         self.setup_scroll_list()
 
     def launch_gene_sel_init(self):
+        self.selectedGene = False
         self.data.calculateGeneMinMax(self.indices, self.selGene)
         if self.modeBtn.state == 1:
             self.initScatterShape()
         else:
             self.initViolinShape()
         self.colorUMAPShape(EXP_COLOR)
-        self.selectedGene = False  
  
     def launch_gene_shape_init(self):
         if (self.modeBtn.state == 1):
@@ -609,7 +613,7 @@ class SCIViewer():
             self.expr = expr.values
             self.geneNames = expr.columns.tolist()
             self.cellNames = expr.index.tolist()
-        elif type(expr) in [np.ndarray, sp.csc.csc_matrix, sp.csr.csr_matrix]:
+        elif type(expr) in [np.ndarray, sp.csc.csc_matrix]:
             self.expr = expr
                         
             if gene_names is None: self.geneNames = [str(i) for i in np.arange(expr.shape[1])]
@@ -619,7 +623,7 @@ class SCIViewer():
             else: self.cellNames = cell_names
             
         else:
-            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, sp.csc_matrix, or sp.csc.csr_matrix')
+            sys.exit('Expression argument - expr - must be pd.DataFrame, np.ndarray, sparse.csc_matrix')
         end = time.time()
 
         if self.umap.shape[0] != self.expr.shape[0]:

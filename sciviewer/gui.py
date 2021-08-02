@@ -56,7 +56,8 @@ class ScrollableList:
         py5obj.push_matrix()
         py5obj.translate(0, self.scrollbar.translateY)
         py5obj.no_stroke()
-        for i in range(0, len(self.genes)):
+        ## Added by Dylan
+        for (i, gene) in enumerate(self.genes):
             py5obj.fill(0, 0, 81)
             rx = 20
             ry = i * ITEM_HEIGHT + ITEM_SPACE
@@ -68,7 +69,6 @@ class ScrollableList:
                 py5obj.no_stroke()
             py5obj.rect(rx, ry, rw, rh)
             py5obj.fill(0, 0, 46)
-            gene = self.genes[i]
             text = gene.name + " " + "{:1.2f}".format(gene.r)
             py5obj.text(text, rx, ry, rw, rh)
         py5obj.pop_matrix()
