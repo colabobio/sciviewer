@@ -132,8 +132,10 @@ class Py5Renderer(Sketch):
         if self.selectedGene and not self.has_thread("launch_gene_shape_init"):
             self.launch_thread(self.launch_gene_sel_init, name="launch_gene_sel_init")
 
-        if self.modeChange and (len(self.indices) > 0) and (self.selGene != -1) and not self.has_thread("launch_gene_sel_init"):
-            self.launch_thread(self.launch_gene_shape_init, name="launch_gene_shape_init")
+        if self.modeChange and not self.has_thread("launch_gene_sel_init"):
+            if (len(self.indices) > 0) and (self.selGene != -1):
+                self.launch_thread(self.launch_gene_shape_init, name="launch_gene_shape_init")
+            self.modeChange = False         
 
         self.showUMAPScatter()
 
@@ -212,7 +214,6 @@ class Py5Renderer(Sketch):
             self.initScatterShape()
         else:
             self.initViolinShape()
-        self.modeChange = False    
 
     def setup_scroll_list(self):
         self.scrollList.setList(self.sortedGenes,
@@ -270,7 +271,7 @@ class Py5Renderer(Sketch):
             pstate = self.modeBtn.state
             if self.modeBtn.contains(self.mouse_x, self.mouse_y, self.hscale, self.vscale):
                 self.modeChange = pstate != self.modeBtn.state
-
+    
         sel = self.scrollList.release(self.mouse_x, self.mouse_y, self.hscale, self.vscale)
         if sel != -1 and sel != self.selGene:
             self.selGene = sel
@@ -700,26 +701,20 @@ class SCIViewer():
         selected_means = self.expr[indices,:].sum(axis=0)
         if self.sparse:
             selected_means = np.array(selected_means).reshape(-1)
-        
+                    
         remainder_means = (self.gene_sum - selected_means) / remainder_N
         selected_means = selected_means / selected_N
-        
+          
         if self.sparse:
             selected_stds = np.array(self.expr2[indices,:].sum(axis=0)).reshape(-1)
         else:
             selected_stds = (self.expr[indices,:]**2).sum(axis=0)
             
         rem_val = (self.gene_sqsum - selected_stds - (remainder_N*remainder_means**2)) / (remainder_N -1)
-        if np.all(0 < rem_val):
-            remainder_stds = np.sqrt(rem_val)
-        else:
-            remainder_stds = 0
+        remainder_stds = np.sqrt(rem_val)
 
         sel_val = (selected_stds - selected_N*selected_means**2) / (selected_N -1)
-        if np.all(0 < sel_val):
-            selected_stds = np.sqrt(sel_val)
-        else:
-            selected_stds = 0
+        selected_stds = np.sqrt(sel_val)
         
         (T, P) = ss.ttest_ind_from_stats(selected_means, selected_stds, selected_N, remainder_means, remainder_stds, remainder_N, equal_var=False, alternative='two-sided')
         
