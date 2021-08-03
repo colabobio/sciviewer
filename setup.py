@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
       long_description = fh.read()
 
 setup(name='sciviewer',
-      version='0.12',
+      version='0.13',
       description='Tool for interactive exploration of 2D embeddings in Jupyter',
       long_description=long_description,
       long_description_content_type='text/markdown',
