@@ -321,10 +321,11 @@ class Py5Renderer(Sketch):
             y = self.remap(expr[i], self.data.minGeneExp, self.data.maxGeneExp, y0 + w - 5, y0 + 5)
             sh = self.create_shape(self.ELLIPSE, x, y, 10, 10)
             sh.set_stroke(False)
-            sh.set_fill(self.color(0, 0, 58, 80))
             shape.add_child(sh)
         self.scatterShape = shape
-           
+        self.scatterShape.set_fill(self.color(0, 0, 58, 80))
+
+        
     def initViolinShape(self, bw_method=None):
         def _kde_method(X, coords):
             if np.all(X[0] == X):
