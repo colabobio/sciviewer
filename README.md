@@ -21,6 +21,17 @@ conda activate your_existing_environment
 
 Note, Sciviewer currently requires Python 3.8 or greater.
 
+3. Install OpenJDK 1.7. Py5 does not work with OpenJDK 11, which is the one available through Conda at the moment. After creating an activating the sciviewer environment, there are two options:
+
+* If you already have OpenJDK 17 installed in your system, you can make it available to sciviewer by setting the JAVA_HOME environmental variable. For instance, if you installed [Adoptium OpenJDK 17](Adoptium), the home folder should be ```/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home``` so you can get the JAVA_HOME as follows:
+
+```
+ export JAVA_HOME=/Library/Java/JavaVirtualMachines/temurin-17.jdk/Contents/Home
+```
+
+* Otherwise, you can install OpenJDK 17 as explained in Py5's [Anaconda setup](http://py5.ixora.io/content/install.html#brief-steps).
+
+
 2. Next, install the sciviewer package using pip:
 ```
 pip install sciviewer

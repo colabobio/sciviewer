@@ -9,11 +9,10 @@ dependencies:
   - jupyterlab
   - line_profiler
   - noise
-  - openjdk=11.0.8
   - pip
   - scipy
   - pandas
   - matplotlib
   - scanpy
   - pip:
-      - py5==0.4a0
+      - py5[jupyter]
