@@ -591,7 +591,7 @@ class SCIViewer():
     def load(self, expr, umap, gene_names, cell_names,
              embedding_name, pearsonsThreshold, tThreshold,
              pvalueThreshold, maxdisplaygenes_pos, maxdisplaygenes_neg, use_raw):
-        print('Start thread')
+        print('Start loading')
         if type(expr) is anndata._core.anndata.AnnData:
             if umap is None:
                 umap = expr.obsm[embedding_name]
@@ -669,7 +669,7 @@ class SCIViewer():
             cells.append(cell)
         self.cells = cells
         self.num_cells = len(cells)
-        print('Finish thread')
+        print('Finish loading')
         self.loaded = True
         
     def update_selected_cells(self, indices):
