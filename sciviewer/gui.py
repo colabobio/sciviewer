@@ -1,7 +1,9 @@
 import numpy as np
 import numpy.linalg as la
-from .utils import angle_between
-#from utils import angle_between
+
+# For debugging, comment out the relative module imports (.) and uncomment the corresponding absolute imports
+# from .utils import angle_between
+from utils import angle_between
 
 CLOSED = 0
 SET_SPINE = 1

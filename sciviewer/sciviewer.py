@@ -8,10 +8,12 @@ import sys
 from py5 import Sketch
 import anndata
 import threading
-from .gui import ScrollableList, Button, ToggleButton, Selector
-from .utils import angle_between, load_data
-#from gui import ScrollableList, Button, ToggleButton, Selector
-#from utils import angle_between, load_data
+
+# For debugging, comment out the relative module imports (.) and uncomment the corresponding absolute imports
+# from .gui import ScrollableList, Button, ToggleButton, Selector
+# from .utils import angle_between, load_data
+from gui import ScrollableList, Button, ToggleButton, Selector
+from utils import angle_between, load_data
 
 import time
 
@@ -636,11 +638,11 @@ class SCIViewer():
 
         self.cells = []
 
-        self.selected_cells = []
-        self.significant_genes = None
+        self.selected_cells = pd.DataFrame()
+        self.significant_genes = pd.DataFrame()
         self.sortedGenes = []
         self.selected_gene_name = ''
-        self.selected_gene_cell_data = None
+        self.selected_gene_cell_data = pd.DataFrame()
         
         self.gene_sum = None
         self.gene_sqsum = None
@@ -651,8 +653,8 @@ class SCIViewer():
         self.maxdisplaygenes_pos = maxdisplaygenes_pos
         self.maxdisplaygenes_neg = maxdisplaygenes_neg
         
-        self.results_diffexpr = None
-        self.results_proj_correlation = None
+        self.results_proj_correlation = pd.DataFrame()
+        self.results_diffexpr = pd.DataFrame()
         
         min1 = self.umap[:,0].min()
         max1 = self.umap[:,0].max()
