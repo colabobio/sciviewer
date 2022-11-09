@@ -92,5 +92,5 @@ For development purposes, it can be helpful to import sciviewer directly rather 
 
 ## Publications
 
-* Kotliar D, Colubri A. Sciviewer enables interactive visual interrogation of single-cell RNA-Seq data from the python programming environment. Bioinformatics. 2021 Oct 2:btab689. doi: [10.1093/bioinformatics/btab689](https://academic.oup.com/bioinformatics/article/37/21/3961/6380550)
+* Kotliar D, Colubri A. Sciviewer enables interactive visual interrogation of single-cell RNA-Seq data from the python programming environment. (2021) Bioinformatics. doi: [10.1093/bioinformatics/btab689](https://academic.oup.com/bioinformatics/article/37/21/3961/6380550)
 * Kotliar D, Colubri A. Sciviewer enables interactive visual interrogation of single-cell RNA-Seq data from the Python programming environment. (2021). bioRxiv. doi: [10.1101/2021.08.12.455997](https://www.biorxiv.org/content/10.1101/2021.08.12.455997v1) (preprint)
