@@ -2,7 +2,10 @@
 
 This is an interactive viewer for 2D embeddings such as [UMAP](https://umap-learn.readthedocs.io/en/latest/) or [tSNE](https://lvdmaaten.github.io/tsne/) of high dimensional single-cell RNA-seq data that is run directly out of the [Jupyter Notebook](https://jupyter.org/) environment. The user can select cells in the 2D plane and the viewer will calculate the differential expression between the selected and the unselected cells. Alternatively, the user can select a group of cells and a direction and the viewer will identify the genes with the greatest variation (Pearson correlation) along that direction. See a video of how this works below. Also, see the example tutorial in this repository (a small example of [3000 PBMCs](tutorials/sciviewer_example_3K_PBMC.ipynb) that illustrates all the input options, and a larger one of [50,000 circulating T-cells](tutorials/sciviewer_example_50K_Tcell.ipynb)).
 
-***Important note:*** The code here is an initial proof-of-concept, the development is continuing in [this new repo](https://github.com/colabobio/sciviewer-dev), which will eventually replace this prototype.
+***Important note:*** The code here is an initial proof-of-concept, the development of Sciviewer continues by extending [anywidget](https://anywidget.dev/), [regl-scatterplot](https://github.com/colabobio/regl-scatterplot), and [jupyter-scatter](https://github.com/colabobio/jupyter-scatter) to recreate it as a fully-featured visualization tool for Jupyter notebooks and completely integrated into the [scverse](https://scverse.org/) ecosystem:
+
+![image](https://github.com/user-attachments/assets/59c2da50-7e09-4a14-a42c-2facba8c1779)
+*Mockup of the next version of Sciviewer based on anywidget, regl-scatterplot, and jupyter-scatter*
 
 ## Installation
 
